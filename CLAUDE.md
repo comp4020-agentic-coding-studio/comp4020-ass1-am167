@@ -54,6 +54,13 @@ and see `spec/README.md` for how the checks in this repo relate to it.
   `./`, `./about/`), never `import.meta.env.BASE_URL` or a root-absolute
   path --- the deployed site lives under a `/<repo-name>/` path, and a
   relative link resolves correctly there without needing the base baked in.
+- **Deep testing, on request only.** Verifying at both marked viewports is
+  the standing default; going further --- keyboard-only navigation, a resize
+  mid-interaction, throttled/slow-connection behaviour, anything probing
+  whether the site holds up under use it wasn't designed for --- is real
+  work and takes real time, so only do it when I explicitly ask for it. Don't
+  run it proactively "while we're at it," and don't fold it into the routine
+  final-check pass.
 
 ## Dependencies
 
