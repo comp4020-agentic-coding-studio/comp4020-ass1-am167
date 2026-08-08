@@ -35,6 +35,50 @@ and see `spec/README.md` for how the checks in this repo relate to it.
   --- the page is wrong until the check is green, not until you decide it should
   be.
 - Commit when the checks pass. Never commit a red state.
+- Never suggest, ask about, or perform publishing/deploying the site (e.g.
+  pushing to GitHub Pages, merging to the deploy branch) unless I explicitly
+  say so.
+- Prefer working directly on `main` and avoid creating git worktrees for this
+  repo when there's a choice. If a background or automated session's tooling
+  enforces isolation and requires one, that's fine without asking first ---
+  but default to staying on `main` whenever the work doesn't force otherwise.
+- Any major change (new page, content rewrite, layout or CSS change) needs
+  visual verification at both marked viewports (1920×1080 and 390×844) in
+  actual Chrome --- but do this once, as a final check once the whole task is
+  done, not after every intermediate step along the way. `pnpm check` proves
+  structure, not that a human can read the page. Use `pnpm preview` (not
+  `file://` --- the built site's asset URLs break over the opaque `file://`
+  origin), and measure rather than eyeball where possible (e.g.
+  `scrollWidth === clientWidth`, not just a screenshot).
+- Internal navigation links use paths relative to the current page (e.g.
+  `./`, `./about/`), never `import.meta.env.BASE_URL` or a root-absolute
+  path --- the deployed site lives under a `/<repo-name>/` path, and a
+  relative link resolves correctly there without needing the base baked in.
+
+## Dependencies
+
+`pnpm-workspace.yaml` sets a `minimumReleaseAge` window: freshly published
+package versions cannot be installed. This is a defence against active npm
+supply-chain attacks --- hijacked maintainer accounts publishing malicious
+releases that steal cloud credentials, npm and CI tokens, worm themselves into
+other packages, and install persistence on whatever machine runs `install`. The
+window *is* the protection: it keeps those releases out of this repo during the
+hours before they're detected and pulled from the registry.
+
+Never circumvent it, under any circumstances. Do not lower it, disable it, set
+`trustLockfile`, add a blanket `minimumReleaseAgeExclude`, or sidestep it in a
+scratch directory or "just for testing" --- and never suggest doing any of those.
+No deadline, red check, or blocked install justifies it; a guard that gets
+switched off when it's inconvenient is not a guard. If it blocks something, stop
+and tell me.
+
+## Process logging
+
+After each meaningful chunk of work --- a feature, a fix, a design decision ---
+append a short entry to `notes/log.md` describing what was done and why. Do
+this as we go, not reconstructed at the end of the assignment. Keep entries
+terse; they're raw material for `PROCESS.md`, not the write-up itself, so log
+generously rather than sparingly.
 
 ## The checks (your sensors)
 
@@ -134,7 +178,12 @@ means building legibly is part of building well.
   format (link text the commit hash or range, target the commit or compare URL);
   `pnpm check:evidence` verifies your citations resolve to real commits before
   you ship. Markers follow those citations and don't trawl the repo for evidence
-  you didn't cite.
+  you didn't cite. `PROCESS.md` is the curated submission artefact, not the log:
+  one paragraph on what was built, then three or four moments, each doing all
+  four jobs (what happened, what I did instead of the obvious thing, how I knew
+  it was right, and a citation --- a commit or range, a `CLAUDE.md` change, or a
+  check that went red to green). Don't append running entries to it directly;
+  I'll decide what gets promoted out of `notes/log.md`.
 - **Write your reflection in `reflections/`** --- a short markdown file in this
   repo, named for the deliverable it answers, so the number in the filename is
   the number in this repo's name (`crit-1.md` in `comp4020-crit1-<you>`,
@@ -144,7 +193,11 @@ means building legibly is part of building well.
   standing prompts: the breakthrough that moved the work forward, and what this
   work changed about the developer you want to be. It stays out of the deployed
   site. It's due at the cutoff, and if it isn't in the repo by then the week
-  doesn't count as shipped, however good the prototype is.
+  doesn't count as shipped, however good the prototype is. Never write the
+  content of the reflection file --- that's my own reflection on the work, in my
+  own words, and it's not the agent's to draft or fill in. Leave the file with
+  just its standing-prompt headers; if it needs to exist for `check:evidence` or
+  similar, create/keep the headers only, never the prose underneath them.
 - **This file is process evidence.** The harness you build to direct the agent,
   this `CLAUDE.md` and any `AGENTS.md`, is itself read as part of how you
   worked. Keep it honest and current (see below).
