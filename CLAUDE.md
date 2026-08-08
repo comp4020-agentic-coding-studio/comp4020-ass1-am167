@@ -141,22 +141,27 @@ CI machine, not proof the site is fast for real users.
 
 ## The stack is swappable
 
-Out of the box this is plain HTML/CSS/TypeScript on Vite, and every `.html` file
-in the repo is a page: add pages, link them, and the build picks them up with no
-config. That's a default, not a rule (unless the week's spec says otherwise).
-You can swap in Astro or any other static generator, because nothing in CI names
-a tool --- the whole contract is:
+This repo runs Astro (the course default from C2), converted from the
+template's plain HTML/CSS/TypeScript starting point by the course plugin's
+`stack` skill. Pages live in `src/pages/**/*.astro`; add pages there and the
+build picks them up with no config. That's a default, not a rule (unless the
+week's spec says otherwise) --- you can swap back to bare HTML/CSS or a
+different generator, because nothing in CI names a tool --- the whole contract
+is:
 
 - `pnpm build` emits the complete site into `dist/`
 - the `package.json` scripts (`check`, `check:evidence`, `build`) keep working
 - whatever lands in `dist/` still passes the invariants in `spec/`
 
 Two things bite in a swap. The deployed site lives under a path
-(`…github.io/<repo>/`), so configure your generator's base path --- this
-template's Vite config uses relative asset URLs to sidestep that, but most
-generators (Astro included) need `base` set explicitly, and getting it wrong
-looks fine locally while every asset 404s on the live URL. And commit the
-updated `pnpm-lock.yaml`: CI installs with `--frozen-lockfile`.
+(`…github.io/<repo>/`), so `astro.config.ts`'s `base` is set explicitly to
+this repo's Pages path --- getting it wrong looks fine locally while every
+asset 404s on the live URL, which is why `pnpm dev`/`pnpm preview` also serve
+under that base rather than at the root. And commit the updated
+`pnpm-lock.yaml`: CI installs with `--frozen-lockfile`. Internal links must be
+relative (`./`, `./about/`) or `import.meta.env.BASE_URL`-prefixed, never
+root-absolute --- and note the CI link check now crawls `astro preview` under
+the base path rather than running `linkinator` against a bare `dist/`.
 
 ## Your process is part of the mark
 
