@@ -3,8 +3,8 @@ import { resolve } from "node:path";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 
-describe("Earth Through Time shell", () => {
-  it("introduces the timeline in the site header", () => {
+describe("Earth Through Time experience", () => {
+  it("ships the scrollable Earth timeline and its readable fallback", () => {
     const distPath = resolve("dist/index.html");
     expect(
       existsSync(distPath),
@@ -13,11 +13,15 @@ describe("Earth Through Time shell", () => {
 
     const doc = new JSDOM(readFileSync(distPath, "utf8")).window.document;
     expect(doc.title).toBe("Earth Through Time");
-    expect(doc.querySelector("h1")?.textContent).toContain("Earth");
-    expect(doc.querySelector(".hero-intro")?.textContent).toContain(
-      "Scroll through the life of our planet",
+    expect(doc.querySelector("[data-timeline]")).toBeTruthy();
+    expect(doc.querySelector("[data-earth-canvas]")).toBeTruthy();
+    expect(doc.querySelectorAll("[data-era-stop]").length).toBeGreaterThanOrEqual(
+      60,
+    );
+    expect(doc.querySelector("[data-era-title]")?.textContent).toContain(
+      "Earth begins in fire",
     );
     expect(doc.querySelector(".time-range")?.textContent).toContain("4.54 BYA");
-    expect(doc.querySelector(".time-range")?.textContent).toContain("+7.59 BY");
+    expect(doc.querySelector(".time-range")?.textContent).toContain("+8 BY");
   });
 });
