@@ -2,6 +2,46 @@ import { createGlobe } from "./globe";
 import { initStarfield } from "./starfield";
 import { stateForScrollFraction, TIMELINE } from "./timeline";
 
+const PRESENT_SCROLL = TIMELINE.find((era) => era.id === "present")?.scroll ?? 0.58;
+const PRESENT_PAUSE_SPAN = 0.04;
+const PRESENT_PAUSE_START = PRESENT_SCROLL * (1 - PRESENT_PAUSE_SPAN);
+const PRESENT_PAUSE_END = PRESENT_PAUSE_START + PRESENT_PAUSE_SPAN;
+
+interface PresentPauseState {
+  progress: number;
+  storyProgress: number;
+  paused: boolean;
+}
+
+function progressWithPresentPause(progress: number): PresentPauseState {
+  if (progress < PRESENT_PAUSE_START) {
+    return {
+      progress: 0,
+      storyProgress: (progress / PRESENT_PAUSE_START) * PRESENT_SCROLL,
+      paused: false,
+    };
+  }
+
+  if (progress <= PRESENT_PAUSE_END) {
+    return {
+      progress:
+        (progress - PRESENT_PAUSE_START) /
+        (PRESENT_PAUSE_END - PRESENT_PAUSE_START),
+      storyProgress: PRESENT_SCROLL,
+      paused: true,
+    };
+  }
+
+  return {
+    progress: 1,
+    storyProgress:
+      PRESENT_SCROLL +
+      ((progress - PRESENT_PAUSE_END) / (1 - PRESENT_PAUSE_END)) *
+        (1 - PRESENT_SCROLL),
+    paused: false,
+  };
+}
+
 function interpolateColour(from: string, to: string, mix: number): string {
   const fromValue = Number.parseInt(from.slice(1), 16);
   const toValue = Number.parseInt(to.slice(1), 16);
@@ -39,6 +79,10 @@ export function initTimeline(): void {
   const counter = requiredElement<HTMLElement>(timeline, "[data-era-counter]");
   const shortDate = requiredElement<HTMLElement>(timeline, "[data-short-date]");
   const globeLabel = requiredElement<HTMLElement>(timeline, "[data-globe-label]");
+  const presentReflection = requiredElement<HTMLElement>(
+    timeline,
+    "[data-present-reflection]",
+  );
   const scrollCue = requiredElement<HTMLElement>(document, "[data-scroll-cue]");
 
   if (
@@ -65,15 +109,23 @@ export function initTimeline(): void {
   const update = (): void => {
     scheduledFrame = 0;
     const scrollDistance = Math.max(1, timeline.offsetHeight - window.innerHeight);
-    const progress = Math.min(
+    const rawProgress = Math.min(
       1,
       Math.max(0, -timeline.getBoundingClientRect().top / scrollDistance),
     );
+    const presentPause = progressWithPresentPause(rawProgress);
+    const progress = presentPause.storyProgress;
     const state = stateForScrollFraction(progress);
     const { from, to, mix, active } = state;
 
     globe.setState(state);
     rootStyle.setProperty("--timeline-progress", String(progress));
+    rootStyle.setProperty(
+      "--reflection-progress",
+      String(presentPause.progress),
+    );
+    timeline.classList.toggle("is-present", active.id === "present");
+    timeline.classList.toggle("is-present-pause", presentPause.paused);
     rootStyle.setProperty(
       "--era-background",
       interpolateColour(from.visual.background, to.visual.background, mix),
@@ -119,6 +171,9 @@ export function initTimeline(): void {
       counter.textContent = String(state.activeIndex + 1).padStart(2, "0");
       shortDate.textContent = active.shortDate;
       globeLabel.textContent = `Earth during ${active.period}, ${active.date}`;
+      if (presentReflection) {
+        presentReflection.hidden = active.id !== "present";
+      }
       copy.classList.add("is-entering");
     }
 
