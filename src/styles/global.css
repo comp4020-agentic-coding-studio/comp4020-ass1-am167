@@ -375,6 +375,23 @@ a {
   opacity: max(0.28, var(--earth-opacity));
 }
 
+.earth-wrap::before {
+  position: absolute;
+  z-index: 0;
+  inset: 8%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    transparent 54%,
+    color-mix(in srgb, var(--era-atmosphere) 22%, transparent) 68%,
+    transparent 74%
+  );
+  content: "";
+  filter: blur(1.35rem);
+  opacity: 0.72;
+  transform: scale(1.08);
+}
+
 .earth-canvas,
 .earth-fallback {
   position: absolute;
@@ -386,13 +403,19 @@ a {
 }
 
 .earth-canvas {
-  filter: drop-shadow(0 1.5rem 2.8rem rgb(0 0 0 / 58%));
+  filter:
+    drop-shadow(
+      0 0 1.15rem color-mix(in srgb, var(--era-atmosphere) 25%, transparent)
+    )
+    drop-shadow(0 1.5rem 2.8rem rgb(0 0 0 / 46%));
 }
 
 .earth-fallback {
   --fallback-base: #32100c;
   --fallback-sea: #4d160d;
   --fallback-land: #7a2513;
+  --fallback-detail: #ffb247;
+  --fallback-atmosphere: #ff784a;
 
   inset: 7%;
   width: 86%;
@@ -401,11 +424,32 @@ a {
   border: 1px solid rgb(255 236 213 / 24%);
   border-radius: 50%;
   background:
-    radial-gradient(ellipse at 65% 30%, var(--fallback-land) 0 8%, transparent 9%),
-    radial-gradient(ellipse at 35% 62%, var(--fallback-land) 0 19%, transparent 20%),
-    radial-gradient(circle at 34% 30%, rgb(255 255 255 / 17%) 0 3%, transparent 32%),
+    radial-gradient(ellipse at 65% 30%, var(--fallback-land) 0 7%, transparent 9%),
+    radial-gradient(ellipse at 35% 62%, var(--fallback-land) 0 18%, transparent 21%),
+    radial-gradient(circle at 34% 30%, rgb(255 255 255 / 22%) 0 2%, transparent 30%),
+    repeating-radial-gradient(
+      ellipse at 28% 41%,
+      transparent 0 4%,
+      color-mix(in srgb, var(--fallback-detail) 9%, transparent) 5% 6%
+    ),
     radial-gradient(circle at 37% 35%, var(--fallback-sea) 0 44%, var(--fallback-base) 72%);
-  box-shadow: inset -3rem -1rem 5rem rgb(0 0 0 / 78%);
+  box-shadow:
+    0 0 1.7rem color-mix(in srgb, var(--fallback-atmosphere) 30%, transparent),
+    inset -3rem -1rem 5rem rgb(0 0 0 / 62%),
+    inset 0 0 0 0.22rem color-mix(in srgb, var(--fallback-atmosphere) 28%, transparent);
+}
+
+.earth-fallback::before {
+  position: absolute;
+  inset: 8% -12%;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 28% 48%, rgb(255 255 255 / 23%) 0 4%, transparent 13%),
+    radial-gradient(ellipse at 67% 35%, rgb(255 255 255 / 17%) 0 5%, transparent 15%),
+    radial-gradient(ellipse at 53% 66%, rgb(255 255 255 / 15%) 0 3%, transparent 12%);
+  content: "";
+  filter: blur(0.38rem);
+  transform: rotate(-11deg);
 }
 
 .red-giant {
