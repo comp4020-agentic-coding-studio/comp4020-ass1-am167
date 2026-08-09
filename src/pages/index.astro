@@ -59,45 +59,47 @@ const firstEra = TIMELINE[0];
     <section class="timeline" data-timeline data-testid="earth-timeline">
       <div class="timeline-frame">
         <div class="timeline-stage">
-          <article class="era-copy" data-era-copy aria-atomic="true">
-            <p class="era-kicker">
-              <span data-era-counter>01</span>
-              <span aria-hidden="true">/</span>
-              <span>{String(TIMELINE.length).padStart(2, "0")}</span>
-              <span class="era-kicker-line" aria-hidden="true"></span>
-              <span data-era-period>{firstEra.period}</span>
-            </p>
-            <p class="era-date" data-era-date>{firstEra.date}</p>
-            <h2 class="era-title" data-era-title>
-              {firstEra.title}
-            </h2>
-            <p class="era-description" data-era-description>
-              {firstEra.description}
-            </p>
-            <aside class="present-reflection" data-present-reflection hidden>
-              <p class="reflection-kicker">You are here</p>
-              <p class="reflection-scale">
-                If Earth’s life to today were one day, all of written history
-                would arrive in its final tenth of a second.
+          <div class="era-copy" data-era-copy aria-atomic="true">
+            <article class="era-panel" data-era-panel data-era-layer="from">
+              <p class="era-kicker">
+                <span data-era-counter>01</span>
+                <span aria-hidden="true">/</span>
+                <span>{String(TIMELINE.length).padStart(2, "0")}</span>
+                <span class="era-kicker-line" aria-hidden="true"></span>
+                <span data-era-period>{firstEra.period}</span>
               </p>
-              <p class="reflection-copy">
-                We are not the centre of this story—only a vanishingly brief
-                moment in which the planet became able to remember, reflect,
-                and choose what comes next.
+              <p class="era-date" data-era-date>{firstEra.date}</p>
+              <h2 class="era-title" data-era-title>
+                {firstEra.title}
+              </h2>
+              <p class="era-description" data-era-description>
+                {firstEra.description}
               </p>
-              <div class="reflection-pause" aria-hidden="true">
-                <span>Hold this moment</span>
-                <span class="reflection-track">
-                  <span class="reflection-fill"></span>
-                </span>
-                <span>Continue</span>
-              </div>
-            </aside>
+              <aside class="present-reflection" data-present-reflection hidden>
+                <p class="reflection-kicker">You are here</p>
+                <p class="reflection-scale">
+                  If Earth’s life to today were one day, all of written history
+                  would arrive in its final tenth of a second.
+                </p>
+                <p class="reflection-copy">
+                  We are not the centre of this story—only a vanishingly brief
+                  moment in which the planet became able to remember, reflect,
+                  and choose what comes next.
+                </p>
+                <div class="reflection-pause" aria-hidden="true">
+                  <span>Hold this moment</span>
+                  <span class="reflection-track">
+                    <span class="reflection-fill"></span>
+                  </span>
+                  <span>Continue</span>
+                </div>
+              </aside>
+            </article>
             <p class="journey-note">
               <span aria-hidden="true">↕</span>
               Scroll in either direction to move through time
             </p>
-          </article>
+          </div>
 
           <figure class="earth-figure" aria-labelledby="earth-caption">
             <div class="red-giant" aria-hidden="true"></div>
@@ -121,7 +123,9 @@ const firstEra = TIMELINE[0];
             <figcaption class="earth-caption" id="earth-caption">
               <span>Earth</span>
               <span class="caption-rule" aria-hidden="true"></span>
-              <span data-short-date>{firstEra.shortDate}</span>
+              <span class="short-date-stack" data-short-date-stack>
+                <span data-short-date data-era-layer="from">{firstEra.shortDate}</span>
+              </span>
               <span class="visually-hidden" id="globe-description" data-globe-label>
                 Earth during {firstEra.period}, {firstEra.date}
               </span>
