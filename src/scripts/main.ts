@@ -3,6 +3,8 @@ import { initStarfield } from "./starfield";
 import type { TimelineEra } from "./timeline";
 import { stateForScrollFraction, TIMELINE } from "./timeline";
 
+const FINAL_ERA_DWELL_VIEWPORTS = 1.1;
+
 function interpolateColour(from: string, to: string, mix: number): string {
   const fromValue = Number.parseInt(from.slice(1), 16);
   const toValue = Number.parseInt(to.slice(1), 16);
@@ -70,9 +72,13 @@ export function initTimeline(): void {
   const update = (): void => {
     scheduledFrame = 0;
     const scrollDistance = Math.max(1, timeline.offsetHeight - window.innerHeight);
+    const narrativeDistance = Math.max(
+      1,
+      scrollDistance - window.innerHeight * FINAL_ERA_DWELL_VIEWPORTS,
+    );
     const progress = Math.min(
       1,
-      Math.max(0, -timeline.getBoundingClientRect().top / scrollDistance),
+      Math.max(0, -timeline.getBoundingClientRect().top / narrativeDistance),
     );
     const state = stateForScrollFraction(progress);
     const { from, to, mix, active } = state;
