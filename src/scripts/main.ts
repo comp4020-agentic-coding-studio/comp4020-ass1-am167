@@ -1,5 +1,6 @@
 import { createGlobe } from "./globe";
 import { initStarfield } from "./starfield";
+import type { TimelineEra } from "./timeline";
 import { stateForScrollFraction, TIMELINE } from "./timeline";
 
 function interpolateColour(from: string, to: string, mix: number): string {
@@ -18,6 +19,10 @@ function requiredElement<T extends Element>(
   selector: string,
 ): T | undefined {
   return root.querySelector<T>(selector) ?? undefined;
+}
+
+function hasVisibleMoon(era: TimelineEra): boolean {
+  return era.millionYearsFromNow >= -4510 && era.id !== "after-earth";
 }
 
 export function initTimeline(): void {
@@ -89,8 +94,8 @@ export function initTimeline(): void {
     const sunStrength = from.visual.sun + (to.visual.sun - from.visual.sun) * mix;
     const heatStrength =
       from.visual.heat + (to.visual.heat - from.visual.heat) * mix;
-    const fromMoonPresence = from.millionYearsFromNow >= -4510 ? 1 : 0;
-    const toMoonPresence = to.millionYearsFromNow >= -4510 ? 1 : 0;
+    const fromMoonPresence = hasVisibleMoon(from) ? 1 : 0;
+    const toMoonPresence = hasVisibleMoon(to) ? 1 : 0;
     const moonPresence =
       fromMoonPresence + (toMoonPresence - fromMoonPresence) * mix;
     const fromWhiteDwarf = from.id === "after-earth" ? from.visual.sun : 0;
@@ -127,7 +132,7 @@ export function initTimeline(): void {
       counter.textContent = String(state.activeIndex + 1).padStart(2, "0");
       shortDate.textContent = active.shortDate;
       globeLabel.textContent = `${
-        active.millionYearsFromNow >= -4510 ? "Earth and Moon" : "Earth"
+        hasVisibleMoon(active) ? "Earth and Moon" : "Earth"
       } during ${active.period}, ${active.date}`;
       copy.classList.add("is-entering");
     }
