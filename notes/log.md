@@ -20,3 +20,4 @@
 - Added a cratered Moon that forms during the Moon-forming impact, remains beside Earth through the timeline, and shares Earth’s interpolated late-life heating so it turns red and develops a matching glow as the Sun expands.
 - Corrected the white-dwarf ending so the Moon fades out through Earth’s uncertain-fate transition and is absent once the Sun is dead, matching the deliberately unresolved final state.
 - Reserved 1.1 viewport-heights of pinned scrolling after the white-dwarf state reaches completion, giving the final copy time to be read before the timeline releases into the conclusion.
+- Retargeted the conclusion's return link from the vertically centred title to the top-level page landmark, so activating it returns to the document's true beginning.
