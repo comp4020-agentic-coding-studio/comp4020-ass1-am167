@@ -12,6 +12,8 @@
   --era-glow: #ff6a32;
   --era-atmosphere: #ff784a;
   --sun-strength: 0;
+  --giant-strength: 0;
+  --white-dwarf-strength: 0;
   --sun-size: 0;
   --earth-opacity: 1;
 }
@@ -375,6 +377,23 @@ a {
   opacity: max(0.28, var(--earth-opacity));
 }
 
+.earth-wrap::before {
+  position: absolute;
+  z-index: 0;
+  inset: 8%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    transparent 54%,
+    color-mix(in srgb, var(--era-atmosphere) 22%, transparent) 68%,
+    transparent 74%
+  );
+  content: "";
+  filter: blur(1.35rem);
+  opacity: 0.72;
+  transform: scale(1.08);
+}
+
 .earth-canvas,
 .earth-fallback {
   position: absolute;
@@ -386,13 +405,19 @@ a {
 }
 
 .earth-canvas {
-  filter: drop-shadow(0 1.5rem 2.8rem rgb(0 0 0 / 58%));
+  filter:
+    drop-shadow(
+      0 0 1.15rem color-mix(in srgb, var(--era-atmosphere) 25%, transparent)
+    )
+    drop-shadow(0 1.5rem 2.8rem rgb(0 0 0 / 46%));
 }
 
 .earth-fallback {
   --fallback-base: #32100c;
   --fallback-sea: #4d160d;
   --fallback-land: #7a2513;
+  --fallback-detail: #ffb247;
+  --fallback-atmosphere: #ff784a;
 
   inset: 7%;
   width: 86%;
@@ -401,11 +426,32 @@ a {
   border: 1px solid rgb(255 236 213 / 24%);
   border-radius: 50%;
   background:
-    radial-gradient(ellipse at 65% 30%, var(--fallback-land) 0 8%, transparent 9%),
-    radial-gradient(ellipse at 35% 62%, var(--fallback-land) 0 19%, transparent 20%),
-    radial-gradient(circle at 34% 30%, rgb(255 255 255 / 17%) 0 3%, transparent 32%),
+    radial-gradient(ellipse at 65% 30%, var(--fallback-land) 0 7%, transparent 9%),
+    radial-gradient(ellipse at 35% 62%, var(--fallback-land) 0 18%, transparent 21%),
+    radial-gradient(circle at 34% 30%, rgb(255 255 255 / 22%) 0 2%, transparent 30%),
+    repeating-radial-gradient(
+      ellipse at 28% 41%,
+      transparent 0 4%,
+      color-mix(in srgb, var(--fallback-detail) 9%, transparent) 5% 6%
+    ),
     radial-gradient(circle at 37% 35%, var(--fallback-sea) 0 44%, var(--fallback-base) 72%);
-  box-shadow: inset -3rem -1rem 5rem rgb(0 0 0 / 78%);
+  box-shadow:
+    0 0 1.7rem color-mix(in srgb, var(--fallback-atmosphere) 30%, transparent),
+    inset -3rem -1rem 5rem rgb(0 0 0 / 62%),
+    inset 0 0 0 0.22rem color-mix(in srgb, var(--fallback-atmosphere) 28%, transparent);
+}
+
+.earth-fallback::before {
+  position: absolute;
+  inset: 8% -12%;
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 28% 48%, rgb(255 255 255 / 23%) 0 4%, transparent 13%),
+    radial-gradient(ellipse at 67% 35%, rgb(255 255 255 / 17%) 0 5%, transparent 15%),
+    radial-gradient(ellipse at 53% 66%, rgb(255 255 255 / 15%) 0 3%, transparent 12%);
+  content: "";
+  filter: blur(0.38rem);
+  transform: rotate(-11deg);
 }
 
 .red-giant {
@@ -415,19 +461,109 @@ a {
   left: 62%;
   width: min(75rem, 78vw);
   aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+}
+
+.red-giant::before,
+.red-giant::after {
+  position: absolute;
+  inset: 0;
   border-radius: 50%;
+  content: "";
+  transform-origin: center;
+}
+
+.red-giant::before {
   background:
     radial-gradient(
+      circle at 33% 31%,
+      rgb(255 255 241 / 72%) 0 1.5%,
+      transparent 8%
+    ),
+    radial-gradient(
+      circle at 62% 58%,
+      color-mix(in srgb, var(--era-glow), #5c0903 58%) 0 2%,
+      transparent 10%
+    ),
+    radial-gradient(
       circle at 45% 42%,
-      color-mix(in srgb, #fff 82%, var(--era-glow)) 0 3%,
-      var(--era-glow) 32%,
-      color-mix(in srgb, var(--era-glow), #250502 62%) 64%,
-      transparent 71%
+      #fffdf0 0 2%,
+      color-mix(in srgb, #fff1aa 72%, var(--era-glow)) 16%,
+      color-mix(in srgb, #ffd46a 68%, var(--era-glow)) 45%,
+      color-mix(in srgb, #ff9945 42%, var(--era-glow)) 65%,
+      color-mix(in srgb, var(--era-glow), #4e0803 52%) 70%,
+      color-mix(in srgb, var(--era-glow) 76%, transparent) 72%,
+      transparent 75%
     );
-  filter: blur(calc(0.2rem + var(--sun-size) * 1.2rem));
-  opacity: calc(var(--sun-strength) * 0.82);
-  transform: translate(-50%, -50%) scale(calc(0.05 + var(--sun-size) * 1.07));
-  transform-origin: center;
+  filter:
+    blur(calc(0.04rem + var(--sun-size) * 0.18rem))
+    drop-shadow(
+      0 0 calc(1.25rem + var(--sun-size) * 2.5rem)
+        color-mix(in srgb, var(--era-glow) 78%, #fff0b8)
+    )
+    drop-shadow(
+      0 0 calc(3rem + var(--sun-size) * 6rem)
+        color-mix(in srgb, var(--era-glow) 42%, transparent)
+    );
+  opacity: clamp(0, calc(var(--giant-strength) * 1.75), 1);
+  transform: scale(calc(0.05 + var(--sun-size) * 1.07));
+}
+
+.red-giant::after {
+  background:
+    radial-gradient(
+      circle closest-side,
+      #fff 0 16%,
+      #fbfdff 23%,
+      #e8f5ff 29%,
+      #b9dcff 34%,
+      rgb(95 156 218 / 82%) 38%,
+      rgb(64 116 181 / 42%) 41%,
+      transparent 44%
+    ),
+    linear-gradient(
+      90deg,
+      transparent 49.25%,
+      rgb(205 232 255 / 0%) 49.45%,
+      rgb(226 242 255 / 88%) 49.72%,
+      #fff 50%,
+      rgb(226 242 255 / 88%) 50.28%,
+      rgb(205 232 255 / 0%) 50.55%,
+      transparent 50.75%
+    ),
+    linear-gradient(
+      transparent 49.25%,
+      rgb(205 232 255 / 0%) 49.45%,
+      rgb(226 242 255 / 88%) 49.72%,
+      #fff 50%,
+      rgb(226 242 255 / 88%) 50.28%,
+      rgb(205 232 255 / 0%) 50.55%,
+      transparent 50.75%
+    ),
+    linear-gradient(
+      45deg,
+      transparent 49.65%,
+      rgb(194 225 255 / 48%) 49.88%,
+      #fff 50%,
+      rgb(194 225 255 / 48%) 50.12%,
+      transparent 50.35%
+    ),
+    linear-gradient(
+      -45deg,
+      transparent 49.65%,
+      rgb(194 225 255 / 48%) 49.88%,
+      #fff 50%,
+      rgb(194 225 255 / 48%) 50.12%,
+      transparent 50.35%
+    );
+  filter:
+    drop-shadow(0 0 0.38rem #fff)
+    drop-shadow(0 0 1.15rem rgb(190 226 255 / 95%))
+    drop-shadow(0 0 3.8rem rgb(100 169 235 / 74%))
+    drop-shadow(0 0 7rem rgb(67 125 196 / 38%));
+  mask-image: radial-gradient(circle, #000 0 48%, rgb(0 0 0 / 82%) 64%, transparent 86%);
+  opacity: clamp(0, calc(var(--white-dwarf-strength) * 2), 1);
+  transform: scale(0.125);
 }
 
 .orbit {
