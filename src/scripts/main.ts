@@ -66,6 +66,39 @@ function hasVisibleMoon(era: TimelineEra): boolean {
   return era.millionYearsFromNow >= -4510 && era.id !== "after-earth";
 }
 
+interface EraPanelElements {
+  root: HTMLElement;
+  date: HTMLElement;
+  period: HTMLElement;
+  title: HTMLElement;
+  description: HTMLElement;
+  counter: HTMLElement;
+  presentReflection?: HTMLElement;
+}
+
+function getEraPanel(root: HTMLElement): EraPanelElements | undefined {
+  const date = requiredElement<HTMLElement>(root, "[data-era-date]");
+  const period = requiredElement<HTMLElement>(root, "[data-era-period]");
+  const title = requiredElement<HTMLElement>(root, "[data-era-title]");
+  const description = requiredElement<HTMLElement>(root, "[data-era-description]");
+  const counter = requiredElement<HTMLElement>(root, "[data-era-counter]");
+
+  if (!date || !period || !title || !description || !counter) return undefined;
+
+  return {
+    root,
+    date,
+    period,
+    title,
+    description,
+    counter,
+    presentReflection: requiredElement<HTMLElement>(
+      root,
+      "[data-present-reflection]",
+    ),
+  };
+}
+
 export function initTimeline(): void {
   initStarfield();
 
@@ -75,42 +108,68 @@ export function initTimeline(): void {
   const canvas = requiredElement<HTMLCanvasElement>(timeline, "[data-earth-canvas]");
   const fallback = requiredElement<HTMLElement>(timeline, "[data-earth-fallback]");
   const copy = requiredElement<HTMLElement>(timeline, "[data-era-copy]");
-  const date = requiredElement<HTMLElement>(timeline, "[data-era-date]");
-  const period = requiredElement<HTMLElement>(timeline, "[data-era-period]");
-  const title = requiredElement<HTMLElement>(timeline, "[data-era-title]");
-  const description = requiredElement<HTMLElement>(
+  const sourcePanelRoot = requiredElement<HTMLElement>(
     timeline,
-    "[data-era-description]",
+    '[data-era-panel][data-era-layer="from"]',
   );
-  const counter = requiredElement<HTMLElement>(timeline, "[data-era-counter]");
-  const shortDate = requiredElement<HTMLElement>(timeline, "[data-short-date]");
+  const shortDateStack = requiredElement<HTMLElement>(
+    timeline,
+    "[data-short-date-stack]",
+  );
+  const sourceShortDate = requiredElement<HTMLElement>(
+    timeline,
+    '[data-short-date][data-era-layer="from"]',
+  );
   const globeLabel = requiredElement<HTMLElement>(timeline, "[data-globe-label]");
-  const presentReflection = requiredElement<HTMLElement>(
-    timeline,
-    "[data-present-reflection]",
-  );
   const scrollCue = requiredElement<HTMLElement>(document, "[data-scroll-cue]");
 
   if (
     !canvas ||
     !fallback ||
     !copy ||
-    !date ||
-    !period ||
-    !title ||
-    !description ||
-    !counter ||
-    !shortDate ||
+    !sourcePanelRoot ||
+    !shortDateStack ||
+    !sourceShortDate ||
     !globeLabel
   ) {
     return;
   }
 
+  const targetPanelRoot = sourcePanelRoot.cloneNode(true) as HTMLElement;
+  targetPanelRoot.dataset.eraLayer = "to";
+  targetPanelRoot.setAttribute("aria-hidden", "true");
+  sourcePanelRoot.after(targetPanelRoot);
+
+  const targetShortDate = sourceShortDate.cloneNode(true) as HTMLElement;
+  targetShortDate.dataset.eraLayer = "to";
+  targetShortDate.setAttribute("aria-hidden", "true");
+  shortDateStack.append(targetShortDate);
+
+  const fromPanel = getEraPanel(sourcePanelRoot);
+  const toPanel = getEraPanel(targetPanelRoot);
+  if (!fromPanel || !toPanel) return;
+
   timeline.dataset.enhanced = "true";
   const globe = createGlobe(canvas, fallback);
   const rootStyle = document.documentElement.style;
+  const eraIndexes = new Map(TIMELINE.map((era, index) => [era.id, index]));
   let activeId = "";
+  let segmentId = "";
   let scheduledFrame = 0;
+
+  const bindPanel = (panel: EraPanelElements, era: TimelineEra): void => {
+    panel.date.textContent = era.date;
+    panel.period.textContent = era.period;
+    panel.title.textContent = era.title;
+    panel.description.textContent = era.description;
+    panel.counter.textContent = String((eraIndexes.get(era.id) ?? 0) + 1).padStart(
+      2,
+      "0",
+    );
+    if (panel.presentReflection) {
+      panel.presentReflection.hidden = era.id !== "present";
+    }
+  };
 
   const update = (): void => {
     scheduledFrame = 0;
@@ -127,6 +186,45 @@ export function initTimeline(): void {
     const progress = presentPause.storyProgress;
     const state = stateForScrollFraction(progress);
     const { from, to, mix, active } = state;
+
+    const nextSegmentId = `${from.id}:${to.id}`;
+    if (nextSegmentId !== segmentId) {
+      segmentId = nextSegmentId;
+      bindPanel(fromPanel, from);
+      bindPanel(toPanel, to);
+      sourceShortDate.textContent = from.shortDate;
+      targetShortDate.textContent = to.shortDate;
+    }
+
+    const copyTransition = Math.min(1, Math.max(0, (mix - 0.2) / 0.6));
+    copy.style.setProperty("--copy-transition", String(copyTransition));
+    copy.style.setProperty(
+      "--copy-from-y",
+      `${(-0.55 * copyTransition).toFixed(3)}rem`,
+    );
+    copy.style.setProperty(
+      "--copy-to-y",
+      `${(0.55 * (1 - copyTransition)).toFixed(3)}rem`,
+    );
+    shortDateStack.style.setProperty(
+      "--copy-transition",
+      String(copyTransition),
+    );
+    shortDateStack.style.setProperty(
+      "--copy-from-y",
+      `${(-0.25 * copyTransition).toFixed(3)}rem`,
+    );
+    shortDateStack.style.setProperty(
+      "--copy-to-y",
+      `${(0.25 * (1 - copyTransition)).toFixed(3)}rem`,
+    );
+
+    const fromIsActive = active.id === from.id;
+    const toIsActive = active.id === to.id && to.id !== from.id;
+    fromPanel.root.setAttribute("aria-hidden", String(!fromIsActive));
+    toPanel.root.setAttribute("aria-hidden", String(!toIsActive));
+    sourceShortDate.setAttribute("aria-hidden", String(!fromIsActive));
+    targetShortDate.setAttribute("aria-hidden", String(!toIsActive));
 
     globe.setState(state);
     rootStyle.setProperty("--timeline-progress", String(progress));
@@ -180,21 +278,9 @@ export function initTimeline(): void {
 
     if (active.id !== activeId) {
       activeId = active.id;
-      copy.classList.remove("is-entering");
-      void copy.offsetWidth;
-      date.textContent = active.date;
-      period.textContent = active.period;
-      title.textContent = active.title;
-      description.textContent = active.description;
-      counter.textContent = String(state.activeIndex + 1).padStart(2, "0");
-      shortDate.textContent = active.shortDate;
       globeLabel.textContent = `${
         hasVisibleMoon(active) ? "Earth and Moon" : "Earth"
       } during ${active.period}, ${active.date}`;
-      if (presentReflection) {
-        presentReflection.hidden = active.id !== "present";
-      }
-      copy.classList.add("is-entering");
     }
 
     if (scrollCue) scrollCue.classList.toggle("is-hidden", progress > 0.025);
