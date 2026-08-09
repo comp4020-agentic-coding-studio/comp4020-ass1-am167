@@ -86,10 +86,17 @@ export function initTimeline(): void {
       "--era-atmosphere",
       interpolateColour(from.visual.atmosphere, to.visual.atmosphere, mix),
     );
+    const sunStrength = from.visual.sun + (to.visual.sun - from.visual.sun) * mix;
+    const fromWhiteDwarf = from.id === "after-earth" ? from.visual.sun : 0;
+    const toWhiteDwarf = to.id === "after-earth" ? to.visual.sun : 0;
+    const whiteDwarfStrength =
+      fromWhiteDwarf + (toWhiteDwarf - fromWhiteDwarf) * mix;
+    rootStyle.setProperty("--sun-strength", String(sunStrength));
     rootStyle.setProperty(
-      "--sun-strength",
-      String(from.visual.sun + (to.visual.sun - from.visual.sun) * mix),
+      "--giant-strength",
+      String(Math.max(0, sunStrength - whiteDwarfStrength)),
     );
+    rootStyle.setProperty("--white-dwarf-strength", String(whiteDwarfStrength));
     const fromSunSize = from.visual.sunSize ?? from.visual.sun;
     const toSunSize = to.visual.sunSize ?? to.visual.sun;
     rootStyle.setProperty(
