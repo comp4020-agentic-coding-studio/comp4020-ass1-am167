@@ -10,3 +10,4 @@
 - Hardened the agent harness so `spec/invariants.test.ts` remains immutable and additional tests require an explicit user request; removed the obsolete starter example as directed by `spec/README.md`.
 - Trimmed `CLAUDE.md` to the active work, dependency-safety, and process-logging guidance, removing the opening course overview and everything after the process-logging section.
 - Replaced the visibly tiled CSS star pattern with a deterministic canvas field whose positions, sizes, brightness and colour temperatures vary naturally without repeating. Removed the era-coloured background bloom and every dedicated globe halo/rim layer so the planet now has a clean silhouette.
+- Increased the starfield to roughly four times its prior population, separating it into a faint deep field and brighter foreground. Expanded the temperature palette, size hierarchy, rare diffraction details and occasional close pairs to add variety without restoring an artificial pattern.

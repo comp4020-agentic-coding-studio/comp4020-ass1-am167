@@ -1,8 +1,14 @@
 const STAR_COLOURS = [
+  [181, 211, 255],
+  [209, 227, 255],
   [226, 239, 255],
-  [244, 248, 255],
+  [247, 250, 255],
   [255, 246, 229],
+  [255, 225, 196],
+  [255, 199, 174],
 ] as const;
+
+type StarColour = (typeof STAR_COLOURS)[number];
 
 function seededRandom(seed: number): () => number {
   let value = seed >>> 0;
@@ -21,22 +27,47 @@ function drawStar(
   y: number,
   radius: number,
   alpha: number,
-  colour: (typeof STAR_COLOURS)[number],
+  colour: StarColour,
 ): void {
-  if (radius > 0.82) {
-    const bloom = context.createRadialGradient(x, y, 0, x, y, radius * 4.2);
-    bloom.addColorStop(0, `rgb(${colour.join(" ")} / ${alpha * 0.3})`);
+  const colourValue = colour.join(" ");
+
+  if (radius > 0.68) {
+    const bloomRadius = radius * (4.4 + radius * 1.5);
+    const bloom = context.createRadialGradient(x, y, 0, x, y, bloomRadius);
+    bloom.addColorStop(0, `rgb(${colourValue} / ${alpha * 0.32})`);
     bloom.addColorStop(1, `rgb(${colour.join(" ")} / 0)`);
     context.fillStyle = bloom;
     context.beginPath();
-    context.arc(x, y, radius * 4.2, 0, Math.PI * 2);
+    context.arc(x, y, bloomRadius, 0, Math.PI * 2);
     context.fill();
   }
 
-  context.fillStyle = `rgb(${colour.join(" ")} / ${alpha})`;
+  if (radius > 1.25) {
+    context.strokeStyle = `rgb(${colourValue} / ${alpha * 0.22})`;
+    context.lineWidth = 0.35;
+    context.beginPath();
+    context.moveTo(x - radius * 3.8, y);
+    context.lineTo(x + radius * 3.8, y);
+    context.moveTo(x, y - radius * 2.6);
+    context.lineTo(x, y + radius * 2.6);
+    context.stroke();
+  }
+
+  context.fillStyle = `rgb(${colourValue} / ${alpha})`;
   context.beginPath();
   context.arc(x, y, radius, 0, Math.PI * 2);
   context.fill();
+}
+
+function pickStarColour(random: () => number): StarColour {
+  const roll = random();
+  if (roll < 0.035) return STAR_COLOURS[0];
+  if (roll < 0.17) return STAR_COLOURS[1];
+  if (roll < 0.38) return STAR_COLOURS[2];
+  if (roll < 0.78) return STAR_COLOURS[3];
+  if (roll < 0.93) return STAR_COLOURS[4];
+  if (roll < 0.985) return STAR_COLOURS[5];
+  return STAR_COLOURS[6];
 }
 
 function paintStarfield(canvas: HTMLCanvasElement): void {
@@ -53,27 +84,55 @@ function paintStarfield(canvas: HTMLCanvasElement): void {
 
   const seed = 0x7f4a7c15 ^ Math.imul(width, 73856093) ^ Math.imul(height, 19349663);
   const random = seededRandom(seed);
-  const starCount = Math.round(Math.min(1150, Math.max(170, (width * height) / 2550)));
+  const deepStarCount = Math.round(
+    Math.min(3400, Math.max(520, (width * height) / 740)),
+  );
+  const foregroundStarCount = Math.round(
+    Math.min(900, Math.max(150, (width * height) / 3000)),
+  );
 
-  for (let index = 0; index < starCount; index += 1) {
+  for (let index = 0; index < deepStarCount; index += 1) {
+    const radius = 0.1 + random() * 0.24;
+    const alpha = 0.055 + Math.pow(random(), 3.4) * 0.28;
+    drawStar(
+      context,
+      random() * width,
+      random() * height,
+      radius,
+      alpha,
+      pickStarColour(random),
+    );
+  }
+
+  for (let index = 0; index < foregroundStarCount; index += 1) {
     const sizeRoll = random();
     const radius =
-      sizeRoll < 0.88
-        ? 0.18 + random() * 0.28
-        : sizeRoll < 0.985
-          ? 0.48 + random() * 0.34
-          : 0.84 + random() * 0.68;
-    const brightness = Math.pow(random(), 2.7);
-    const alpha = 0.12 + brightness * (radius > 0.82 ? 0.76 : 0.58);
-    const colourRoll = random();
-    const colour =
-      colourRoll < 0.2
-        ? STAR_COLOURS[0]
-        : colourRoll < 0.82
-          ? STAR_COLOURS[1]
-          : STAR_COLOURS[2];
+      sizeRoll < 0.76
+        ? 0.24 + random() * 0.3
+        : sizeRoll < 0.94
+          ? 0.52 + random() * 0.38
+          : sizeRoll < 0.992
+            ? 0.9 + random() * 0.55
+            : 1.5 + random() * 0.65;
+    const alpha = 0.16 + Math.pow(random(), 2.15) * (radius > 0.9 ? 0.78 : 0.62);
+    const colour = pickStarColour(random);
+    const x = random() * width;
+    const y = random() * height;
 
-    drawStar(context, random() * width, random() * height, radius, alpha, colour);
+    drawStar(context, x, y, radius, alpha, colour);
+
+    if (radius > 0.52 && random() < 0.055) {
+      const angle = random() * Math.PI * 2;
+      const separation = 2.2 + random() * 4.8;
+      drawStar(
+        context,
+        x + Math.cos(angle) * separation,
+        y + Math.sin(angle) * separation,
+        radius * (0.28 + random() * 0.24),
+        alpha * (0.42 + random() * 0.28),
+        pickStarColour(random),
+      );
+    }
   }
 }
 
