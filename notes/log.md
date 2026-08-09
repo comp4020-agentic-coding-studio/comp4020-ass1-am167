@@ -16,3 +16,4 @@
 - Added local day, ocean, cloud and night-light maps from the official Three.js example texture collection for the present-day Earth, while preserving generated era-specific geography for deep history and the far future.
 - Reworked the late-stage Sun from a translucent blurred wash into an opaque stellar disc with a white-gold photosphere, darker limb, subtle surface variation and a broader coloured corona. Its existing timeline strength and size transitions remain intact.
 - Split the final white dwarf from the red-giant treatment. The old warm, spotted miniature disc now crossfades into a compact blue-white photosphere with a sharp limb, cool halo and fine diffraction rays as the giant sheds its envelope.
+- Retargeted the conclusion's return link from the vertically centred title to the top-level page landmark, so activating it returns to the document's true beginning.
