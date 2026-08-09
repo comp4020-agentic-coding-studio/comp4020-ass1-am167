@@ -1,6 +1,9 @@
 import { createGlobe } from "./globe";
 import { initStarfield } from "./starfield";
+import type { TimelineEra } from "./timeline";
 import { stateForScrollFraction, TIMELINE } from "./timeline";
+
+const FINAL_ERA_DWELL_VIEWPORTS = 1.1;
 
 function interpolateColour(from: string, to: string, mix: number): string {
   const fromValue = Number.parseInt(from.slice(1), 16);
@@ -18,6 +21,10 @@ function requiredElement<T extends Element>(
   selector: string,
 ): T | undefined {
   return root.querySelector<T>(selector) ?? undefined;
+}
+
+function hasVisibleMoon(era: TimelineEra): boolean {
+  return era.millionYearsFromNow >= -4510 && era.id !== "after-earth";
 }
 
 export function initTimeline(): void {
@@ -65,9 +72,13 @@ export function initTimeline(): void {
   const update = (): void => {
     scheduledFrame = 0;
     const scrollDistance = Math.max(1, timeline.offsetHeight - window.innerHeight);
+    const narrativeDistance = Math.max(
+      1,
+      scrollDistance - window.innerHeight * FINAL_ERA_DWELL_VIEWPORTS,
+    );
     const progress = Math.min(
       1,
-      Math.max(0, -timeline.getBoundingClientRect().top / scrollDistance),
+      Math.max(0, -timeline.getBoundingClientRect().top / narrativeDistance),
     );
     const state = stateForScrollFraction(progress);
     const { from, to, mix, active } = state;
@@ -87,6 +98,12 @@ export function initTimeline(): void {
       interpolateColour(from.visual.atmosphere, to.visual.atmosphere, mix),
     );
     const sunStrength = from.visual.sun + (to.visual.sun - from.visual.sun) * mix;
+    const heatStrength =
+      from.visual.heat + (to.visual.heat - from.visual.heat) * mix;
+    const fromMoonPresence = hasVisibleMoon(from) ? 1 : 0;
+    const toMoonPresence = hasVisibleMoon(to) ? 1 : 0;
+    const moonPresence =
+      fromMoonPresence + (toMoonPresence - fromMoonPresence) * mix;
     const fromWhiteDwarf = from.id === "after-earth" ? from.visual.sun : 0;
     const toWhiteDwarf = to.id === "after-earth" ? to.visual.sun : 0;
     const whiteDwarfStrength =
@@ -107,6 +124,8 @@ export function initTimeline(): void {
       "--earth-opacity",
       String(from.visual.opacity + (to.visual.opacity - from.visual.opacity) * mix),
     );
+    rootStyle.setProperty("--moon-opacity", String(moonPresence));
+    rootStyle.setProperty("--moon-heat", String(heatStrength));
 
     if (active.id !== activeId) {
       activeId = active.id;
@@ -118,7 +137,9 @@ export function initTimeline(): void {
       description.textContent = active.description;
       counter.textContent = String(state.activeIndex + 1).padStart(2, "0");
       shortDate.textContent = active.shortDate;
-      globeLabel.textContent = `Earth during ${active.period}, ${active.date}`;
+      globeLabel.textContent = `${
+        hasVisibleMoon(active) ? "Earth and Moon" : "Earth"
+      } during ${active.period}, ${active.date}`;
       copy.classList.add("is-entering");
     }
 
