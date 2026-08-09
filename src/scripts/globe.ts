@@ -310,15 +310,10 @@ function createPlanetTexture(visual: EraVisual, index: number): HTMLCanvasElemen
   return canvas;
 }
 
-function colourBetween(from: string, to: string, mix: number): THREE.Color {
-  return new THREE.Color(from).lerp(new THREE.Color(to), mix);
-}
-
 function setFallbackState(fallback: HTMLElement, state: TimelineState): void {
   fallback.style.setProperty("--fallback-base", state.active.visual.surface);
   fallback.style.setProperty("--fallback-sea", state.active.visual.ocean);
   fallback.style.setProperty("--fallback-land", state.active.visual.land);
-  fallback.style.setProperty("--fallback-glow", state.active.visual.glow);
   fallback.style.opacity = String(state.active.visual.opacity);
 }
 
@@ -398,7 +393,6 @@ export function createGlobe(
       textureMix: { value: 0 },
       heat: { value: TIMELINE[0].visual.heat },
       globeOpacity: { value: 1 },
-      rimColour: { value: new THREE.Color(TIMELINE[0].visual.glow) },
     },
     vertexShader: `
       varying vec2 vUv;
@@ -416,7 +410,6 @@ export function createGlobe(
       uniform float textureMix;
       uniform float heat;
       uniform float globeOpacity;
-      uniform vec3 rimColour;
       varying vec2 vUv;
       varying vec3 vViewNormal;
 
@@ -428,9 +421,7 @@ export function createGlobe(
         vec3 lightDirection = normalize(vec3(-0.55, 0.3, 0.9));
         float diffuse = max(dot(normal, lightDirection), 0.0);
         float light = 0.19 + diffuse * 0.92;
-        float rim = pow(1.0 - max(dot(normal, vec3(0.0, 0.0, 1.0)), 0.0), 2.5);
         vec3 colour = surface * mix(light, 1.05, heat * 0.52);
-        colour += rimColour * rim * (0.06 + heat * 0.12);
         gl_FragColor = vec4(colour, globeOpacity);
       }
     `,
@@ -440,43 +431,6 @@ export function createGlobe(
   planet.rotation.z = -0.17;
   scene.add(planet);
 
-  const atmosphereMaterial = new THREE.ShaderMaterial({
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    transparent: true,
-    uniforms: {
-      atmosphereColour: {
-        value: new THREE.Color(TIMELINE[0].visual.atmosphere),
-      },
-      atmosphereOpacity: { value: 0.34 },
-    },
-    vertexShader: `
-      varying vec3 vViewNormal;
-
-      void main() {
-        vViewNormal = normalize(normalMatrix * normal);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform vec3 atmosphereColour;
-      uniform float atmosphereOpacity;
-      varying vec3 vViewNormal;
-
-      void main() {
-        float edge = 1.0 - max(dot(normalize(vViewNormal), vec3(0.0, 0.0, 1.0)), 0.0);
-        float alpha = smoothstep(0.15, 1.0, edge) * atmosphereOpacity;
-        gl_FragColor = vec4(atmosphereColour, alpha);
-      }
-    `,
-  });
-  const atmosphere = new THREE.Mesh(
-    new THREE.SphereGeometry(1.045, 64, 48),
-    atmosphereMaterial,
-  );
-  atmosphere.rotation.copy(planet.rotation);
-  scene.add(atmosphere);
-
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let animationFrame = 0;
   let lastFrame = performance.now();
@@ -485,7 +439,6 @@ export function createGlobe(
     if (!reducedMotion.matches) {
       const elapsed = Math.min(now - lastFrame, 48);
       planet.rotation.y += elapsed * 0.000035;
-      atmosphere.rotation.y = planet.rotation.y;
     }
     lastFrame = now;
     renderer.render(scene, camera);
@@ -538,28 +491,13 @@ export function createGlobe(
       planetMaterial.uniforms.globeOpacity.value =
         state.from.visual.opacity +
         (state.to.visual.opacity - state.from.visual.opacity) * state.mix;
-      planetMaterial.uniforms.rimColour.value.copy(
-        colourBetween(state.from.visual.glow, state.to.visual.glow, state.mix),
-      );
-      atmosphereMaterial.uniforms.atmosphereColour.value.copy(
-        colourBetween(
-          state.from.visual.atmosphere,
-          state.to.visual.atmosphere,
-          state.mix,
-        ),
-      );
-      atmosphereMaterial.uniforms.atmosphereOpacity.value =
-        (0.24 + state.from.visual.cloudCover * 0.26) * (1 - state.mix) +
-        (0.24 + state.to.visual.cloudCover * 0.26) * state.mix;
     },
     destroy() {
       stopRendering();
       resizeObserver.disconnect();
       document.removeEventListener("visibilitychange", handleVisibility);
       geometry.dispose();
-      atmosphere.geometry.dispose();
       planetMaterial.dispose();
-      atmosphereMaterial.dispose();
       for (const texture of textures.values()) texture.dispose();
       renderer.dispose();
     },

@@ -6,7 +6,9 @@ const firstEra = TIMELINE[0];
 ---
 
 <Layout title="Earth Through Time">
-  <div class="space" aria-hidden="true"></div>
+  <div class="space" aria-hidden="true">
+    <canvas class="starfield-canvas" data-starfield></canvas>
+  </div>
 
   <header class="site-header">
     <nav class="site-nav" aria-label="Primary navigation">
@@ -69,7 +71,6 @@ const firstEra = TIMELINE[0];
             <div class="orbit orbit-outer" aria-hidden="true"></div>
             <div class="orbit orbit-inner" aria-hidden="true"></div>
             <div class="earth-wrap">
-              <div class="earth-halo" aria-hidden="true"></div>
               <div
                 class="earth-fallback"
                 data-earth-fallback

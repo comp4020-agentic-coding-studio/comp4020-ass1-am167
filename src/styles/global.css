@@ -59,9 +59,7 @@ a {
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  background:
-    radial-gradient(circle at 72% 43%, var(--era-background) 0, transparent 46rem),
-    linear-gradient(145deg, #010207 0%, var(--era-background) 52%, #02040a 100%);
+  background: linear-gradient(145deg, #010207 0%, var(--era-background) 52%, #02040a 100%);
 }
 
 .space::before,
@@ -72,30 +70,28 @@ a {
 }
 
 .space::before {
-  opacity: calc(0.72 - var(--sun-strength) * 0.5);
-  background-image:
-    radial-gradient(circle, rgb(231 243 255 / 74%) 0 0.7px, transparent 0.95px),
-    radial-gradient(circle, rgb(148 186 225 / 49%) 0 0.65px, transparent 0.9px),
-    radial-gradient(circle, rgb(255 255 255 / 55%) 0 0.85px, transparent 1.1px);
-  background-position:
-    0 0,
-    31px 47px,
-    79px 21px;
-  background-size:
-    137px 137px,
-    193px 193px,
-    257px 257px;
+  z-index: 0;
+  opacity: calc(0.34 - var(--sun-strength) * 0.24);
+  background:
+    radial-gradient(ellipse at 12% 82%, rgb(42 67 95 / 11%) 0, transparent 31%),
+    radial-gradient(ellipse at 88% 12%, rgb(69 45 58 / 9%) 0, transparent 34%),
+    linear-gradient(118deg, transparent 24%, rgb(95 120 146 / 4%) 49%, transparent 73%);
+  filter: blur(0.5rem);
 }
 
 .space::after {
-  opacity: 0.72;
-  background:
-    radial-gradient(circle at 82% 18%, rgb(159 207 255 / 55%) 0 1px, transparent 1.8px),
-    radial-gradient(circle at 20% 62%, rgb(255 255 255 / 41%) 0 1px, transparent 1.8px),
-    radial-gradient(circle at 61% 78%, rgb(148 187 228 / 43%) 0 1px, transparent 1.8px),
-    radial-gradient(circle at 72% 50%, var(--era-glow) 0, transparent 29rem);
-  filter: drop-shadow(0 0 5px rgb(164 207 255 / 30%));
-  mix-blend-mode: screen;
+  z-index: 2;
+  background: radial-gradient(ellipse at center, transparent 38%, rgb(0 1 5 / 28%) 100%);
+}
+
+.starfield-canvas {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: calc(0.94 - var(--sun-strength) * 0.6);
 }
 
 .site-header {
@@ -397,7 +393,6 @@ a {
   --fallback-base: #32100c;
   --fallback-sea: #4d160d;
   --fallback-land: #7a2513;
-  --fallback-glow: #ff6a32;
 
   inset: 7%;
   width: 86%;
@@ -410,20 +405,7 @@ a {
     radial-gradient(ellipse at 35% 62%, var(--fallback-land) 0 19%, transparent 20%),
     radial-gradient(circle at 34% 30%, rgb(255 255 255 / 17%) 0 3%, transparent 32%),
     radial-gradient(circle at 37% 35%, var(--fallback-sea) 0 44%, var(--fallback-base) 72%);
-  box-shadow:
-    0 0 4rem var(--fallback-glow),
-    inset -3rem -1rem 5rem rgb(0 0 0 / 78%);
-}
-
-.earth-halo {
-  position: absolute;
-  z-index: 1;
-  inset: 11%;
-  border-radius: 50%;
-  background: var(--era-glow);
-  filter: blur(3.7rem);
-  opacity: calc(0.14 + var(--sun-strength) * 0.16);
-  transform: scale(0.92);
+  box-shadow: inset -3rem -1rem 5rem rgb(0 0 0 / 78%);
 }
 
 .red-giant {

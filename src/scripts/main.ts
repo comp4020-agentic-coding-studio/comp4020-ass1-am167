@@ -1,4 +1,5 @@
 import { createGlobe } from "./globe";
+import { initStarfield } from "./starfield";
 import { stateForScrollFraction, TIMELINE } from "./timeline";
 
 function interpolateColour(from: string, to: string, mix: number): string {
@@ -20,6 +21,8 @@ function requiredElement<T extends Element>(
 }
 
 export function initTimeline(): void {
+  initStarfield();
+
   const timeline = document.querySelector<HTMLElement>("[data-timeline]");
   if (!timeline) return;
 
