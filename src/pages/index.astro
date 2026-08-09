@@ -2,19 +2,45 @@
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout title="COMP4020 prototype">
-  <header>
-    <nav aria-label="Primary">
-      <a href="./">Home</a>
+<Layout title="Earth Through Time">
+  <div class="space" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <nav class="site-nav" aria-label="Primary navigation">
+      <div class="wordmark">
+        <a href="./" aria-label="Earth Through Time, home">
+          <span class="planet-mark" aria-hidden="true"></span>
+          <span class="wordmark-text">
+            <span>Earth</span>
+            <span>Through Time</span>
+          </span>
+        </a>
+      </div>
+
+      <div class="time-range" aria-label="Timeline from 4.54 billion years ago to 7.59 billion years from now">
+        <span>4.54 BYA</span>
+        <span class="time-line" aria-hidden="true"></span>
+        <span>+7.59 BY</span>
+      </div>
+
+      <p class="scroll-cue">
+        <span>Scroll to travel</span>
+        <span class="scroll-arrow" aria-hidden="true">↓</span>
+      </p>
     </nav>
   </header>
-  <main>
-    <h1>COMP4020 prototype</h1>
-    <p data-testid="intro">
-      Replace this with your prototype. This week's brief is on the course
-      website; <code>spec/README.md</code> explains how the checks in this repo
-      relate to it.
-    </p>
+
+  <main class="stage" aria-label="Earth timeline">
+    <section class="hero" aria-labelledby="page-title">
+      <p class="hero-kicker">One planet · 12 billion years</p>
+      <h1 class="hero-title" id="page-title">
+        Earth
+        <span>Through Time</span>
+      </h1>
+      <p class="hero-intro">
+        Scroll through the life of our planet—from its violent birth 4.54
+        billion years ago to its final encounter with a dying Sun.
+      </p>
+    </section>
   </main>
-  <script src="../scripts/main.ts"></script>
 </Layout>
