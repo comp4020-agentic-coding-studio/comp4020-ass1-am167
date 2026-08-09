@@ -87,6 +87,12 @@ export function initTimeline(): void {
       interpolateColour(from.visual.atmosphere, to.visual.atmosphere, mix),
     );
     const sunStrength = from.visual.sun + (to.visual.sun - from.visual.sun) * mix;
+    const heatStrength =
+      from.visual.heat + (to.visual.heat - from.visual.heat) * mix;
+    const fromMoonPresence = from.millionYearsFromNow >= -4510 ? 1 : 0;
+    const toMoonPresence = to.millionYearsFromNow >= -4510 ? 1 : 0;
+    const moonPresence =
+      fromMoonPresence + (toMoonPresence - fromMoonPresence) * mix;
     const fromWhiteDwarf = from.id === "after-earth" ? from.visual.sun : 0;
     const toWhiteDwarf = to.id === "after-earth" ? to.visual.sun : 0;
     const whiteDwarfStrength =
@@ -107,6 +113,8 @@ export function initTimeline(): void {
       "--earth-opacity",
       String(from.visual.opacity + (to.visual.opacity - from.visual.opacity) * mix),
     );
+    rootStyle.setProperty("--moon-opacity", String(moonPresence));
+    rootStyle.setProperty("--moon-heat", String(heatStrength));
 
     if (active.id !== activeId) {
       activeId = active.id;
@@ -118,7 +126,9 @@ export function initTimeline(): void {
       description.textContent = active.description;
       counter.textContent = String(state.activeIndex + 1).padStart(2, "0");
       shortDate.textContent = active.shortDate;
-      globeLabel.textContent = `Earth during ${active.period}, ${active.date}`;
+      globeLabel.textContent = `${
+        active.millionYearsFromNow >= -4510 ? "Earth and Moon" : "Earth"
+      } during ${active.period}, ${active.date}`;
       copy.classList.add("is-entering");
     }
 
