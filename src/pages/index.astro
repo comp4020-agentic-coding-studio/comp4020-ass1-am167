@@ -41,7 +41,21 @@ const firstEra = TIMELINE[0];
     </nav>
   </header>
 
-  <main aria-label="Earth timeline">
+  <main aria-label="Earth through time">
+    <section class="hero" aria-labelledby="page-title">
+      <div class="hero-content">
+        <p class="hero-kicker">One planet · 12 billion years</p>
+        <h1 class="hero-title" id="page-title">
+          Earth
+          <span>Through Time</span>
+        </h1>
+        <p class="hero-intro">
+          Scroll through the life of our planet—from its violent birth 4.54
+          billion years ago to its final encounter with a dying Sun.
+        </p>
+      </div>
+    </section>
+
     <section class="timeline" data-timeline data-testid="earth-timeline">
       <div class="timeline-frame">
         <div class="timeline-stage">
@@ -54,9 +68,9 @@ const firstEra = TIMELINE[0];
               <span data-era-period>{firstEra.period}</span>
             </p>
             <p class="era-date" data-era-date>{firstEra.date}</p>
-            <h1 class="era-title" id="page-title" data-era-title>
+            <h2 class="era-title" data-era-title>
               {firstEra.title}
-            </h1>
+            </h2>
             <p class="era-description" data-era-description>
               {firstEra.description}
             </p>
@@ -128,6 +142,30 @@ const firstEra = TIMELINE[0];
           ))
         }
       </ol>
+    </section>
+
+    <section class="conclusion" aria-labelledby="conclusion-title">
+      <div class="conclusion-orbit" aria-hidden="true">
+        <span class="conclusion-ring"></span>
+        <span class="conclusion-ring conclusion-ring-middle"></span>
+        <span class="conclusion-ring conclusion-ring-inner"></span>
+      </div>
+      <div class="conclusion-content">
+        <p class="conclusion-kicker">After 12.54 billion years</p>
+        <h2 class="conclusion-title" id="conclusion-title">
+          Endings are
+          <em>transformations.</em>
+        </h2>
+        <p class="conclusion-copy">
+          Earth is temporary, but not insignificant. Oceans, ice, forests,
+          extinctions and fire each made the world that followed. For one brief
+          interval, the planet could look back at its own story.
+        </p>
+        <a class="return-link" href="#page-title">
+          <span>Return to the beginning</span>
+          <span aria-hidden="true">↑</span>
+        </a>
+      </div>
     </section>
   </main>
 
