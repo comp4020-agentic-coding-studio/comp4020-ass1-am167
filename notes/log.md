@@ -21,3 +21,4 @@
 - Corrected the white-dwarf ending so the Moon fades out through Earth’s uncertain-fate transition and is absent once the Sun is dead, matching the deliberately unresolved final state.
 - Reserved 1.1 viewport-heights of pinned scrolling after the white-dwarf state reaches completion, giving the final copy time to be read before the timeline releases into the conclusion.
 - Retargeted the conclusion's return link from the vertically centred title to the top-level page landmark, so activating it returns to the document's true beginning.
+- Added a dependency-free performance regression suite that budgets the built payload, compressed client bundle, request graph and asset sizes, and benchmarks the scroll-to-era mapping hot path. Added `pnpm test:performance` and documented that the checks measure `dist/`.
