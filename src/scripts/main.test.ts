@@ -54,7 +54,6 @@ function installFixture(): TimelineFixture {
             <span data-short-date data-era-layer="from"></span>
           </div>
           <span data-globe-label></span>
-          <div class="scroll-track"></div>
         </section>
       </body>
     </html>`);
@@ -92,12 +91,9 @@ function installFixture(): TimelineFixture {
     frames.set(id, callback);
     return id;
   };
-  window.scrollTo = vi.fn();
-  window.matchMedia = vi.fn().mockReturnValue({ matches: false });
 
   vi.stubGlobal("window", window);
   vi.stubGlobal("document", document);
-  vi.stubGlobal("WheelEvent", window.WheelEvent);
 
   return {
     document,
@@ -135,10 +131,6 @@ describe("interactive timeline", () => {
     expect(initStarfieldMock).toHaveBeenCalledOnce();
     expect(createGlobeMock).toHaveBeenCalledOnce();
     expect(timeline.dataset.enhanced).toBe("true");
-    expect(document.documentElement.classList).toContain("timeline-scroll-snap");
-    expect(document.querySelectorAll(".scroll-stop")).toHaveLength(
-      TIMELINE.length,
-    );
     expect(document.querySelectorAll("[data-era-panel]")).toHaveLength(2);
     expect(document.querySelectorAll("[data-short-date]")).toHaveLength(2);
     expect(
@@ -149,47 +141,6 @@ describe("interactive timeline", () => {
       String(TIMELINE.length),
     );
     expect(globeSetStateMock.mock.calls[0]?.[0].active.id).toBe("formation");
-  });
-
-  it("advances one era after resistance and absorbs the gesture's momentum", () => {
-    const { document } = installFixture();
-    initTimeline();
-
-    const window = document.defaultView;
-    if (!window) throw new Error("Timeline fixture requires a window");
-    const scrollToMock = vi.mocked(window.scrollTo);
-    const secondStop = document.querySelectorAll<HTMLElement>(".scroll-stop")[1];
-    const expectedTop = Number.parseFloat(secondStop.style.top);
-
-    const belowThreshold = new window.WheelEvent("wheel", {
-      cancelable: true,
-      deltaY: 50,
-    });
-    window.dispatchEvent(belowThreshold);
-
-    expect(belowThreshold.defaultPrevented).toBe(true);
-    expect(scrollToMock).not.toHaveBeenCalled();
-
-    const crossingThreshold = new window.WheelEvent("wheel", {
-      cancelable: true,
-      deltaY: 10,
-    });
-    window.dispatchEvent(crossingThreshold);
-
-    expect(crossingThreshold.defaultPrevented).toBe(true);
-    expect(scrollToMock).toHaveBeenCalledOnce();
-    const scrollOptions = scrollToMock.mock.calls[0]?.[0] as ScrollToOptions;
-    expect(scrollOptions.behavior).toBe("smooth");
-    expect(scrollOptions.top).toBeCloseTo(expectedTop);
-
-    const momentum = new window.WheelEvent("wheel", {
-      cancelable: true,
-      deltaY: 5_000,
-    });
-    window.dispatchEvent(momentum);
-
-    expect(momentum.defaultPrevented).toBe(true);
-    expect(scrollToMock).toHaveBeenCalledOnce();
   });
 
   it("updates content, accessibility state and visual variables while scrolling", () => {

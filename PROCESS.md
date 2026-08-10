@@ -5,10 +5,6 @@
 
 ## The moments that mattered
 
-### Turned accidental timeline skips into deliberate steps
-
-The 62-event timeline initially treated scrolling as one completely continuous track, so a trackpad flick could cross several events or stop midway through a text and globe transition. I first added native snap points at every era, which fixed the half-transition resting states, but testing in Chrome showed that a high-momentum gesture could still jump across several snap points. I kept those lightweight settle points for touch and scrollbar movement, then added a small wheel/trackpad threshold that advances only one milestone per gesture and absorbs its remaining momentum. Both the visual state and stop positions are derived from the same present-day pause mapping, so the interaction stays reversible and the intentional “Now” dwell cannot drift away from its label. I verified the result at both marked viewports: arbitrary scroll positions settled on complete eras, a large wheel gesture requested exactly the next event, mobile stayed free of horizontal overflow, and the final stop still released normally into the conclusion. [`3c7c7d7`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/3c7c7d7)
-
 ### Enforced test immutability at the harness level
 
 The starter test template invited adding new tests every time something broke, which meant the spec grew with every iteration instead of staying focused on the real constraints. Instead of re-prompting the agent to ignore this invitation each time, I removed the starter test, made `spec/invariants.test.ts` immutable, and hardened `CLAUDE.md` to require explicit approval for new tests. This shifted the default from "add a test" to "fix the implementation," preventing scope creep and keeping the spec focused on the invariants that actually matter. The verification was immediate: `pnpm check` now rejects new test additions outright, and the spec stayed stable across all subsequent work. [`8271304`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/8271304)
