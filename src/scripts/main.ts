@@ -11,6 +11,8 @@ import {
 const FINAL_ERA_DWELL_VIEWPORTS = 1.1;
 const WHEEL_RESISTANCE_PX = 55;
 const WHEEL_STEP_COOLDOWN_MS = 160;
+const VISUAL_SMOOTHING_MS = 120;
+const VISUAL_PROGRESS_EPSILON = 0.00001;
 
 function interpolateColour(from: string, to: string, mix: number): string {
   const fromValue = Number.parseInt(from.slice(1), 16);
@@ -134,10 +136,15 @@ export function initTimeline(): void {
 
   const globe = createGlobe(canvas, fallback);
   const rootStyle = document.documentElement.style;
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  );
   const eraIndexes = new Map(TIMELINE.map((era, index) => [era.id, index]));
   let activeId = "";
   let segmentId = "";
   let scheduledFrame = 0;
+  let displayedRawProgress: number | undefined;
+  let lastFrameTime = 0;
   let positionedSnapDistance = -1;
   let snapPositions: number[] = [];
   let wheelDelta = 0;
@@ -158,7 +165,7 @@ export function initTimeline(): void {
     }
   };
 
-  const update = (): void => {
+  const update = (frameTime = 0): void => {
     scheduledFrame = 0;
     const scrollDistance = Math.max(1, timeline.offsetHeight - window.innerHeight);
     const narrativeDistance = Math.max(
@@ -176,11 +183,34 @@ export function initTimeline(): void {
       });
     }
 
-    const rawProgress = Math.min(
+    const targetRawProgress = Math.min(
       1,
       Math.max(0, -timeline.getBoundingClientRect().top / narrativeDistance),
     );
-    const presentPause = timelineProgressForTrackProgress(rawProgress);
+    if (
+      displayedRawProgress === undefined ||
+      prefersReducedMotion.matches
+    ) {
+      displayedRawProgress = targetRawProgress;
+    } else {
+      const elapsed =
+        lastFrameTime === 0
+          ? 16
+          : Math.min(50, Math.max(0, frameTime - lastFrameTime));
+      const smoothing = 1 - Math.exp(-elapsed / VISUAL_SMOOTHING_MS);
+      displayedRawProgress +=
+        (targetRawProgress - displayedRawProgress) * smoothing;
+
+      if (
+        Math.abs(targetRawProgress - displayedRawProgress) <
+        VISUAL_PROGRESS_EPSILON
+      ) {
+        displayedRawProgress = targetRawProgress;
+      }
+    }
+    lastFrameTime = frameTime;
+
+    const presentPause = timelineProgressForTrackProgress(displayedRawProgress);
     const progress = presentPause.timelineProgress;
     const state = stateForScrollFraction(progress);
     const { from, to, mix, active } = state;
@@ -194,7 +224,7 @@ export function initTimeline(): void {
       targetShortDate.textContent = to.shortDate;
     }
 
-    const copyTransition = Math.min(1, Math.max(0, (mix - 0.2) / 0.6));
+    const copyTransition = mix;
     copy.style.setProperty("--copy-transition", String(copyTransition));
     shortDateStack.style.setProperty(
       "--copy-transition",
@@ -266,6 +296,16 @@ export function initTimeline(): void {
     }
 
     if (scrollCue) scrollCue.classList.toggle("is-hidden", progress > 0.025);
+
+    const needsVisualSmoothing =
+      !prefersReducedMotion.matches &&
+      Math.abs(targetRawProgress - displayedRawProgress) >=
+        VISUAL_PROGRESS_EPSILON;
+    if (needsVisualSmoothing) {
+      scheduledFrame = window.requestAnimationFrame(update);
+    } else {
+      lastFrameTime = 0;
+    }
   };
 
   const scheduleUpdate = (): void => {
@@ -346,9 +386,7 @@ export function initTimeline(): void {
     lockWheelStep();
     window.scrollTo({
       top: timelineTop + snapPositions[targetIndex],
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth",
+      behavior: "auto",
     });
   };
 

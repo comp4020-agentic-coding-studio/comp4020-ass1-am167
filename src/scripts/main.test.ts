@@ -64,6 +64,7 @@ function installFixture(): TimelineFixture {
 
   let timelineTop = 0;
   let scrollY = 0;
+  let frameTime = 0;
   let nextFrameId = 1;
   const frames = new Map<number, FrameRequestCallback>();
 
@@ -114,9 +115,10 @@ function installFixture(): TimelineFixture {
       document.dispatchEvent(new window.Event("scroll"));
     },
     flushFrame() {
+      frameTime += 16;
       const queued = [...frames.values()];
       frames.clear();
-      for (const callback of queued) callback(16);
+      for (const callback of queued) callback(frameTime);
     },
   };
 }
@@ -190,7 +192,7 @@ describe("interactive timeline", () => {
     expect(crossingThreshold.defaultPrevented).toBe(true);
     expect(scrollToMock).toHaveBeenCalledOnce();
     const scrollOptions = scrollToMock.mock.calls[0]?.[0] as ScrollToOptions;
-    expect(scrollOptions.behavior).toBe("smooth");
+    expect(scrollOptions.behavior).toBe("auto");
     expect(scrollOptions.top).toBeCloseTo(expectedTop);
 
     const momentum = new window.WheelEvent("wheel", {
@@ -233,6 +235,29 @@ describe("interactive timeline", () => {
     }
   });
 
+  it("eases the displayed timeline state toward a newly selected era", () => {
+    const { document, flushFrame, setRawProgress } = installFixture();
+    initTimeline();
+
+    const target = TIMELINE[1].scroll;
+    setRawProgress(trackProgressForTimelineProgress(target));
+    flushFrame();
+
+    const firstFrame = Number(
+      document.documentElement.style.getPropertyValue("--timeline-progress"),
+    );
+    expect(firstFrame).toBeGreaterThan(0);
+    expect(firstFrame).toBeLessThan(target);
+
+    for (let frame = 0; frame < 100; frame += 1) flushFrame();
+
+    expect(
+      Number(
+        document.documentElement.style.getPropertyValue("--timeline-progress"),
+      ),
+    ).toBeCloseTo(target);
+  });
+
   it("updates content, accessibility state and visual variables while scrolling", () => {
     const { document, flushFrame, setRawProgress, timeline } = installFixture();
     initTimeline();
@@ -243,7 +268,7 @@ describe("interactive timeline", () => {
     const pauseMiddle = pauseStart + 0.02;
 
     setRawProgress(pauseMiddle);
-    flushFrame();
+    for (let frame = 0; frame < 100; frame += 1) flushFrame();
 
     const sourcePanel = document.querySelector<HTMLElement>(
       '[data-era-panel][data-era-layer="from"]',
@@ -267,7 +292,7 @@ describe("interactive timeline", () => {
     );
 
     setRawProgress(1);
-    flushFrame();
+    for (let frame = 0; frame < 100; frame += 1) flushFrame();
 
     const finalEra = TIMELINE.at(-1);
     expect(finalEra).toBeDefined();
