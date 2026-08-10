@@ -22,3 +22,5 @@
 - Reserved 1.1 viewport-heights of pinned scrolling after the white-dwarf state reaches completion, giving the final copy time to be read before the timeline releases into the conclusion.
 - Retargeted the conclusion's return link from the vertically centred title to the top-level page landmark, so activating it returns to the document's true beginning.
 - Added a dependency-free performance regression suite that budgets the built payload, compressed client bundle, request graph and asset sizes, and benchmarks the scroll-to-era mapping hot path. Added `pnpm test:performance` and documented that the checks measure `dist/`.
+- Added correctness coverage for timeline data and interpolation, the built chronological fallback, and interactive scroll-driven DOM/accessibility updates. Made `pnpm test` build before testing so built-page checks are reliable, and documented focused and full test commands in `CLAUDE.md`.
+- Added the new correctness suite to `PROCESS.md` as a harness-level feedback improvement, including why building before built-output tests matters and the passing 35-test result.
