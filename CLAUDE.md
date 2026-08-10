@@ -47,6 +47,22 @@
   run it proactively "while we're at it," and don't fold it into the routine
   final-check pass.
 
+## Tests
+
+- Run `pnpm test` for the complete automated test suite. It builds the site
+  first, then runs the generic page invariants, built timeline/fallback checks,
+  timeline mapping unit tests, interactive scroll/DOM tests, evidence-script
+  tests, and performance regression budgets.
+- During focused timeline work, use
+  `pnpm exec vitest run src/scripts/timeline.test.ts` for the pure mapping and
+  data checks, or `pnpm exec vitest run src/scripts/main.test.ts` for the
+  browser-DOM interaction checks. Neither focused command needs a fresh build.
+- Use `pnpm test:performance` when specifically changing assets, bundles, or
+  per-frame scroll work. Use `pnpm check` before committing because it also
+  performs type checking, a production build, linting, and the full test suite.
+- `spec/timeline-page.test.ts` and `spec/invariants.test.ts` inspect `dist/`.
+  Build first when running either file directly so they test current output.
+
 ## Dependencies
 
 `pnpm-workspace.yaml` sets a `minimumReleaseAge` window: freshly published
