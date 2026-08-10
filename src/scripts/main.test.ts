@@ -63,12 +63,17 @@ function installFixture(): TimelineFixture {
   if (!timeline) throw new Error("Timeline fixture is incomplete");
 
   let timelineTop = 0;
+  let scrollY = 0;
   let nextFrameId = 1;
   const frames = new Map<number, FrameRequestCallback>();
 
   Object.defineProperty(window, "innerHeight", {
     configurable: true,
     value: VIEWPORT_HEIGHT,
+  });
+  Object.defineProperty(window, "scrollY", {
+    configurable: true,
+    get: () => scrollY,
   });
   Object.defineProperty(timeline, "offsetHeight", {
     configurable: true,
@@ -92,7 +97,9 @@ function installFixture(): TimelineFixture {
     frames.set(id, callback);
     return id;
   };
-  window.scrollTo = vi.fn();
+  window.scrollTo = vi.fn((options?: ScrollToOptions | number, y?: number) => {
+    scrollY = typeof options === "number" ? (y ?? 0) : (options?.top ?? 0);
+  });
   window.matchMedia = vi.fn().mockReturnValue({ matches: false });
 
   vi.stubGlobal("window", window);
@@ -123,6 +130,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -151,7 +159,8 @@ describe("interactive timeline", () => {
     expect(globeSetStateMock.mock.calls[0]?.[0].active.id).toBe("formation");
   });
 
-  it("advances one era after resistance and absorbs the gesture's momentum", () => {
+  it("damps immediate momentum but keeps advancing during sustained input", () => {
+    vi.useFakeTimers();
     const { document } = installFixture();
     initTimeline();
 
@@ -159,7 +168,9 @@ describe("interactive timeline", () => {
     if (!window) throw new Error("Timeline fixture requires a window");
     const scrollToMock = vi.mocked(window.scrollTo);
     const secondStop = document.querySelectorAll<HTMLElement>(".scroll-stop")[1];
+    const thirdStop = document.querySelectorAll<HTMLElement>(".scroll-stop")[2];
     const expectedTop = Number.parseFloat(secondStop.style.top);
+    const nextExpectedTop = Number.parseFloat(thirdStop.style.top);
 
     const belowThreshold = new window.WheelEvent("wheel", {
       cancelable: true,
@@ -190,6 +201,17 @@ describe("interactive timeline", () => {
 
     expect(momentum.defaultPrevented).toBe(true);
     expect(scrollToMock).toHaveBeenCalledOnce();
+
+    for (let index = 0; index < 4; index += 1) {
+      vi.advanceTimersByTime(50);
+      window.dispatchEvent(
+        new window.WheelEvent("wheel", { cancelable: true, deltaY: 60 }),
+      );
+    }
+
+    expect(scrollToMock).toHaveBeenCalledTimes(2);
+    const nextScrollOptions = scrollToMock.mock.calls[1]?.[0] as ScrollToOptions;
+    expect(nextScrollOptions.top).toBeCloseTo(nextExpectedTop);
   });
 
   it("updates content, accessibility state and visual variables while scrolling", () => {
