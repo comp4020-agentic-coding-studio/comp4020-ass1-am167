@@ -949,8 +949,29 @@ a {
   transform: translate(-50%, -50%);
 }
 
+.timeline-scroll-snap {
+  scroll-snap-type: y proximity;
+}
+
 .scroll-track {
+  position: absolute;
+  inset: 0;
   display: none;
+  pointer-events: none;
+}
+
+.timeline[data-enhanced="true"] .scroll-track {
+  display: block;
+}
+
+.scroll-stop {
+  position: absolute;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .timeline-fallback {
