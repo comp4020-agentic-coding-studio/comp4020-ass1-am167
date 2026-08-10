@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   stateForScrollFraction,
+  timelineProgressForTrackProgress,
   TIMELINE,
   timeForScrollFraction,
+  trackProgressForTimelineProgress,
 } from "./timeline";
 
 describe("Earth timeline mapping", () => {
@@ -116,6 +118,25 @@ describe("Earth timeline mapping", () => {
       expect(state.active.id, era.id).toBe(era.id);
       expect(state.millionYearsFromNow, era.id).toBe(era.millionYearsFromNow);
       expect(state.activeIndex, era.id).toBe(index);
+    }
+  });
+
+  it("places every scroll stop at the track position for its exact era", () => {
+    let previousTrackProgress = -1;
+
+    for (const era of TIMELINE) {
+      const trackProgress = trackProgressForTimelineProgress(era.scroll);
+      const mappedState = timelineProgressForTrackProgress(trackProgress);
+
+      expect(trackProgress, era.id).toBeGreaterThan(previousTrackProgress);
+      expect(mappedState.timelineProgress, era.id).toBeCloseTo(era.scroll);
+
+      if (era.id === "present") {
+        expect(mappedState.paused).toBe(true);
+        expect(mappedState.pauseProgress).toBe(0);
+      }
+
+      previousTrackProgress = trackProgress;
     }
   });
 
