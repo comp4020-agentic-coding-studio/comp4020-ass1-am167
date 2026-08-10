@@ -33,6 +33,14 @@ pnpm build      # produce dist/ (what gets deployed)
 pnpm dlx linkinator ./dist --silent   # reproduce CI's links check before you push
 ```
 
+## Performance checks
+
+`pnpm test:performance` builds the site and runs the regression suite in
+`scripts/performance.test.ts`. It checks the shipped payload, compressed
+JavaScript, request shape, asset sizes, and the CPU cost of the scroll-to-era
+mapping. The budgets are deliberately checked against `dist/`, so they measure
+what will be deployed rather than source-file size.
+
 `mise` is the course's recommended runtime manager. If you use another manager
 or the official installers, that is fine: provide the Node and pnpm versions in
 `mise.toml`, then run the same commands. Tutor support reproduces runtime
