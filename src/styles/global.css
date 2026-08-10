@@ -348,8 +348,6 @@ a {
 
 .era-copy {
   --copy-transition: 0;
-  --copy-from-y: 0;
-  --copy-to-y: 0.55rem;
 
   position: relative;
   z-index: 5;
@@ -364,17 +362,15 @@ a {
   grid-column: 1;
   min-width: 0;
   pointer-events: none;
-  will-change: opacity, transform;
+  will-change: opacity;
 }
 
 .era-panel[data-era-layer="from"] {
   opacity: calc(1 - var(--copy-transition));
-  transform: translate3d(0, var(--copy-from-y), 0);
 }
 
 .era-panel[data-era-layer="to"] {
   opacity: var(--copy-transition);
-  transform: translate3d(0, var(--copy-to-y), 0);
 }
 
 .era-kicker {
@@ -852,8 +848,6 @@ a {
 
 .short-date-stack {
   --copy-transition: 0;
-  --copy-from-y: 0;
-  --copy-to-y: 0.25rem;
 
   display: inline-grid;
 }
@@ -861,17 +855,15 @@ a {
 .short-date-stack > span {
   grid-row: 1;
   grid-column: 1;
-  will-change: opacity, transform;
+  will-change: opacity;
 }
 
 .short-date-stack > [data-era-layer="from"] {
   opacity: calc(1 - var(--copy-transition));
-  transform: translateY(var(--copy-from-y));
 }
 
 .short-date-stack > [data-era-layer="to"] {
   opacity: var(--copy-transition);
-  transform: translateY(var(--copy-to-y));
 }
 
 .earth-caption > span:first-child {

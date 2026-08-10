@@ -13,7 +13,7 @@ vi.mock("./globe", () => ({ createGlobe: createGlobeMock }));
 vi.mock("./starfield", () => ({ initStarfield: initStarfieldMock }));
 
 import { initTimeline } from "./main";
-import { TIMELINE } from "./timeline";
+import { TIMELINE, trackProgressForTimelineProgress } from "./timeline";
 
 const VIEWPORT_HEIGHT = 1_000;
 const TIMELINE_HEIGHT = 5_000;
@@ -212,6 +212,25 @@ describe("interactive timeline", () => {
     expect(scrollToMock).toHaveBeenCalledTimes(2);
     const nextScrollOptions = scrollToMock.mock.calls[1]?.[0] as ScrollToOptions;
     expect(nextScrollOptions.top).toBeCloseTo(nextExpectedTop);
+  });
+
+  it("keeps both text layers vertically anchored during a crossfade", () => {
+    const { document, flushFrame, setRawProgress } = installFixture();
+    initTimeline();
+
+    const storyMidpoint = (TIMELINE[0].scroll + TIMELINE[1].scroll) / 2;
+    setRawProgress(trackProgressForTimelineProgress(storyMidpoint));
+    flushFrame();
+
+    const copy = document.querySelector<HTMLElement>("[data-era-copy]");
+    const shortDateStack = document.querySelector<HTMLElement>(
+      "[data-short-date-stack]",
+    );
+
+    for (const layer of [copy, shortDateStack]) {
+      expect(layer?.style.getPropertyValue("--copy-from-y")).toBe("");
+      expect(layer?.style.getPropertyValue("--copy-to-y")).toBe("");
+    }
   });
 
   it("updates content, accessibility state and visual variables while scrolling", () => {

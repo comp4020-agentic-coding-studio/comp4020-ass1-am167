@@ -196,25 +196,9 @@ export function initTimeline(): void {
 
     const copyTransition = Math.min(1, Math.max(0, (mix - 0.2) / 0.6));
     copy.style.setProperty("--copy-transition", String(copyTransition));
-    copy.style.setProperty(
-      "--copy-from-y",
-      `${(-0.55 * copyTransition).toFixed(3)}rem`,
-    );
-    copy.style.setProperty(
-      "--copy-to-y",
-      `${(0.55 * (1 - copyTransition)).toFixed(3)}rem`,
-    );
     shortDateStack.style.setProperty(
       "--copy-transition",
       String(copyTransition),
-    );
-    shortDateStack.style.setProperty(
-      "--copy-from-y",
-      `${(-0.25 * copyTransition).toFixed(3)}rem`,
-    );
-    shortDateStack.style.setProperty(
-      "--copy-to-y",
-      `${(0.25 * (1 - copyTransition)).toFixed(3)}rem`,
     );
 
     const fromIsActive = active.id === from.id;
