@@ -18,7 +18,7 @@
   green, not until you decide it should be.
 - Never edit, replace, rename, or delete `spec/invariants.test.ts`; treat that
   file as immutable and fix the implementation when one of its tests fails.
-  Create additional tests only when I explicitly ask you to.
+  Follow the scoped test-driven-development rule below for new coverage.
 - Commit when the checks pass. Never commit a red state.
 - Never suggest, ask about, or perform publishing/deploying the site (e.g.
   pushing to GitHub Pages, merging to the deploy branch) unless I explicitly
@@ -49,6 +49,17 @@
 
 ## Tests
 
+- **Use TDD for significant, testable code changes.** For a feature, behavioural
+  change, non-trivial state/data mapping, algorithm, or risky refactor, first
+  add or adjust the smallest focused test that expresses the intended contract.
+  Confirm it fails for the expected reason, then implement until it passes.
+  Prefer extending the nearest existing test file over creating another suite.
+- **Do not add a test for every minor fix.** Copy edits, small style tweaks,
+  obvious one-line corrections, mechanical cleanup, and implementation details
+  already covered by a durable behavioural test should use the existing checks.
+  Add regression coverage for a small fix only when it closes a distinct,
+  plausible failure mode that could recur. The goal is high-value backpressure,
+  not a suite that grows by one test for every edit.
 - Run `pnpm test` for the complete automated test suite. It builds the site
   first, then runs the generic page invariants, built timeline/fallback checks,
   timeline mapping unit tests, interactive scroll/DOM tests, evidence-script
