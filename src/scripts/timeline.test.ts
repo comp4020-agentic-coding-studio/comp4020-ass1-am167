@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  moonHeatFor,
   stateForScrollFraction,
   TIMELINE,
   timeForScrollFraction,
@@ -99,6 +100,48 @@ describe("Earth timeline mapping", () => {
         (era) => era.id,
       ),
     ).toEqual(["present"]);
+  });
+
+  it("keeps the red-giant disc off until the Sun leaves the main sequence", () => {
+    const coreHydrogenEnds = TIMELINE.find(
+      (era) => era.id === "core-hydrogen-ends",
+    );
+    expect(coreHydrogenEnds).toBeDefined();
+
+    for (const era of TIMELINE) {
+      if (era.millionYearsFromNow < (coreHydrogenEnds?.millionYearsFromNow ?? 0)) {
+        expect(era.visual.sun, era.id).toBeLessThan(0.08);
+        expect(era.visual.mode, era.id).not.toBe("red-giant");
+      }
+    }
+
+    expect(coreHydrogenEnds?.visual.sun).toBeGreaterThanOrEqual(0.35);
+    expect(
+      TIMELINE.find((era) => era.id === "sun-swells")?.visual.sun,
+    ).toBeGreaterThanOrEqual(0.75);
+  });
+
+  it("holds Moon heating below the orange-glow threshold until solar expansion", () => {
+    const glowThreshold = 0.58;
+    const coreHydrogenEnds = TIMELINE.find(
+      (era) => era.id === "core-hydrogen-ends",
+    );
+    expect(coreHydrogenEnds).toBeDefined();
+
+    for (const era of TIMELINE) {
+      if (
+        era.millionYearsFromNow >= 0 &&
+        era.millionYearsFromNow < (coreHydrogenEnds?.millionYearsFromNow ?? 0)
+      ) {
+        expect(moonHeatFor(era), era.id).toBeLessThan(glowThreshold);
+      }
+    }
+
+    // +5.4 BY should be a clear visible start, not a barely-crossed threshold.
+    expect(moonHeatFor(coreHydrogenEnds!)).toBeGreaterThanOrEqual(0.72);
+    expect(
+      moonHeatFor(TIMELINE.find((era) => era.id === "sun-swells")!),
+    ).toBeGreaterThan(0.85);
   });
 
   it("interpolates continuously across an era segment", () => {
