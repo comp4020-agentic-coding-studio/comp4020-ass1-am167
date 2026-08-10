@@ -11,7 +11,7 @@
     "test:performance": "pnpm build && vitest run scripts/performance.test.ts",
     "check": "pnpm typecheck && pnpm build && oxlint --ignore-path .gitignore && stylelint \"**/*.css\" --ignore-path .gitignore --allow-empty-input && vitest run",
     "check:evidence": "node scripts/check-evidence.ts",
-    "test": "vitest run"
+    "test": "pnpm build && vitest run"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",

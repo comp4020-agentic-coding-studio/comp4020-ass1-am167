@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   stateForScrollFraction,
+  timelineProgressForTrackProgress,
   TIMELINE,
   timeForScrollFraction,
+  trackProgressForTimelineProgress,
 } from "./timeline";
 
 describe("Earth timeline mapping", () => {
@@ -48,9 +50,100 @@ describe("Earth timeline mapping", () => {
     }
   });
 
+  it("keeps every era complete and every visual value renderable", () => {
+    const colour = /^#[0-9a-f]{6}$/i;
+    const boundedVisualKeys = [
+      "cloudCover",
+      "iceCover",
+      "oceanCover",
+      "heat",
+      "sun",
+      "opacity",
+    ] as const;
+
+    for (const era of TIMELINE) {
+      expect(era.id).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+      expect(era.date.trim()).not.toBe("");
+      expect(era.shortDate.trim()).not.toBe("");
+      expect(era.period.trim()).not.toBe("");
+      expect(era.title.trim()).not.toBe("");
+      expect(era.description.trim()).not.toBe("");
+      expect(era.scroll).toBeGreaterThanOrEqual(0);
+      expect(era.scroll).toBeLessThanOrEqual(1);
+
+      for (const key of [
+        "background",
+        "surface",
+        "ocean",
+        "land",
+        "detail",
+        "atmosphere",
+        "glow",
+      ] as const) {
+        expect(era.visual[key], `${era.id}.${key}`).toMatch(colour);
+      }
+
+      for (const key of boundedVisualKeys) {
+        expect(era.visual[key], `${era.id}.${key}`).toBeGreaterThanOrEqual(0);
+        expect(era.visual[key], `${era.id}.${key}`).toBeLessThanOrEqual(1);
+      }
+
+      if (era.visual.sunSize !== undefined) {
+        expect(era.visual.sunSize, `${era.id}.sunSize`).toBeGreaterThanOrEqual(0);
+        expect(era.visual.sunSize, `${era.id}.sunSize`).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  it("interpolates continuously across an era segment", () => {
+    const fromIndex = 8;
+    const from = TIMELINE[fromIndex];
+    const to = TIMELINE[fromIndex + 1];
+    const midpoint = from.scroll + (to.scroll - from.scroll) / 2;
+    const state = stateForScrollFraction(midpoint);
+
+    expect(state.from).toBe(from);
+    expect(state.to).toBe(to);
+    expect(state.mix).toBeCloseTo(0.5);
+    expect(state.active).toBe(to);
+    expect(state.activeIndex).toBe(fromIndex + 1);
+    expect(state.millionYearsFromNow).toBeCloseTo(
+      (from.millionYearsFromNow + to.millionYearsFromNow) / 2,
+    );
+  });
+
+  it("selects each exact milestone without skipping its content", () => {
+    for (const [index, era] of TIMELINE.entries()) {
+      const state = stateForScrollFraction(era.scroll);
+      expect(state.active.id, era.id).toBe(era.id);
+      expect(state.millionYearsFromNow, era.id).toBe(era.millionYearsFromNow);
+      expect(state.activeIndex, era.id).toBe(index);
+    }
+  });
+
+  it("places every scroll stop at the track position for its exact era", () => {
+    let previousTrackProgress = -1;
+
+    for (const era of TIMELINE) {
+      const trackProgress = trackProgressForTimelineProgress(era.scroll);
+      const mappedState = timelineProgressForTrackProgress(trackProgress);
+
+      expect(trackProgress, era.id).toBeGreaterThan(previousTrackProgress);
+      expect(mappedState.timelineProgress, era.id).toBeCloseTo(era.scroll);
+
+      if (era.id === "present") {
+        expect(mappedState.paused).toBe(true);
+        expect(mappedState.pauseProgress).toBe(0);
+      }
+
+      previousTrackProgress = trackProgress;
+    }
+  });
+
   it("is deterministic and clamps out-of-range input", () => {
     expect(stateForScrollFraction(0.4)).toEqual(stateForScrollFraction(0.4));
     expect(stateForScrollFraction(-10).active.id).toBe("formation");
     expect(stateForScrollFraction(10).active.id).toBe("after-earth");
+    expect(stateForScrollFraction(Number.NaN).active.id).toBe("formation");
   });
 });
