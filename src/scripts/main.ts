@@ -10,7 +10,7 @@ import {
 
 const FINAL_ERA_DWELL_VIEWPORTS = 1.1;
 const WHEEL_RESISTANCE_PX = 55;
-const WHEEL_STEP_COOLDOWN_MS = 160;
+const WHEEL_GESTURE_END_MS = 160;
 
 function interpolateColour(from: string, to: string, mix: number): string {
   const fromValue = Number.parseInt(from.slice(1), 16);
@@ -141,8 +141,8 @@ export function initTimeline(): void {
   let positionedSnapDistance = -1;
   let snapPositions: number[] = [];
   let wheelDelta = 0;
-  let wheelStepLocked = false;
-  let wheelStepTimer = 0;
+  let wheelGestureHandled = false;
+  let wheelGestureTimer = 0;
 
   const bindPanel = (panel: EraPanelElements, era: TimelineEra): void => {
     panel.date.textContent = era.date;
@@ -289,20 +289,17 @@ export function initTimeline(): void {
     scheduledFrame = window.requestAnimationFrame(update);
   };
 
-  const resetWheelStep = (): void => {
-    window.clearTimeout(wheelStepTimer);
-    wheelStepTimer = 0;
+  const resetWheelGesture = (): void => {
     wheelDelta = 0;
-    wheelStepLocked = false;
+    wheelGestureHandled = false;
   };
 
-  const lockWheelStep = (): void => {
-    wheelStepLocked = true;
-    wheelStepTimer = window.setTimeout(() => {
-      wheelStepTimer = 0;
-      wheelDelta = 0;
-      wheelStepLocked = false;
-    }, WHEEL_STEP_COOLDOWN_MS);
+  const scheduleWheelGestureReset = (): void => {
+    window.clearTimeout(wheelGestureTimer);
+    wheelGestureTimer = window.setTimeout(
+      resetWheelGesture,
+      WHEEL_GESTURE_END_MS,
+    );
   };
 
   const handleWheel = (event: WheelEvent): void => {
@@ -336,13 +333,14 @@ export function initTimeline(): void {
       (currentScroll <= firstStop + 1 && delta < 0) ||
       (currentScroll >= lastStop - 1 && delta > 0)
     ) {
-      resetWheelStep();
+      resetWheelGesture();
       return;
     }
 
     event.preventDefault();
+    scheduleWheelGestureReset();
 
-    if (wheelStepLocked) return;
+    if (wheelGestureHandled) return;
 
     wheelDelta += delta;
     if (Math.abs(wheelDelta) < WHEEL_RESISTANCE_PX) return;
@@ -359,7 +357,7 @@ export function initTimeline(): void {
     if (targetIndex < 0) return;
 
     wheelDelta = 0;
-    lockWheelStep();
+    wheelGestureHandled = true;
     window.scrollTo({
       top: timelineTop + snapPositions[targetIndex],
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
