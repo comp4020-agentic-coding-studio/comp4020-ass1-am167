@@ -1,6 +1,8 @@
 # How to work in here
 
-- Keep the dev server running (`pnpm dev`) so you see changes as you make them.
+- Keep the dev server running (`pnpm dev`) while working so you see changes as
+  you make them, then kill any dev or preview servers you started when you are
+  done with them.
 - Before you push, run `pnpm check`. It runs most of what CI runs --- build,
   lint, and the spec --- so you catch those in seconds instead of waiting for
   the pipeline. The links check, the evidence check, the secrets scan, and the
@@ -30,11 +32,12 @@
 - Any major change (new page, content rewrite, layout or CSS change) needs
   visual verification at both marked viewports (1920×1080 and 390×844) in
   actual Chrome --- but do this once, as a final check once the whole task is
-  done, not after every intermediate step along the way. `pnpm check` proves
-  structure, not that a human can read the page. Use `pnpm preview` (not
-  `file://` --- the built site's asset URLs break over the opaque `file://`
-  origin), and measure rather than eyeball where possible (e.g.
-  `scrollWidth === clientWidth`, not just a screenshot).
+  done, not after every intermediate step along the way. Do not perform
+  viewport testing for minor fixes. `pnpm check` proves structure, not that a
+  human can read the page. Use `pnpm preview` (not `file://` --- the built
+  site's asset URLs break over the opaque `file://` origin), and measure rather
+  than eyeball where possible (e.g. `scrollWidth === clientWidth`, not just a
+  screenshot).
 - Internal navigation links use paths relative to the current page (e.g.
   `./`, `./about/`), never `import.meta.env.BASE_URL` or a root-absolute
   path --- the deployed site lives under a `/<repo-name>/` path, and a
