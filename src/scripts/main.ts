@@ -1,16 +1,48 @@
 import { createGlobe } from "./globe";
 import { initStarfield } from "./starfield";
 import type { TimelineEra } from "./timeline";
-import {
-  stateForScrollFraction,
-  timelineProgressForTrackProgress,
-  TIMELINE,
-  trackProgressForTimelineProgress,
-} from "./timeline";
+import { stateForScrollFraction, TIMELINE } from "./timeline";
 
+const PRESENT_SCROLL = TIMELINE.find((era) => era.id === "present")?.scroll ?? 0.58;
+const PRESENT_PAUSE_SPAN = 0.04;
+const PRESENT_PAUSE_START = PRESENT_SCROLL * (1 - PRESENT_PAUSE_SPAN);
+const PRESENT_PAUSE_END = PRESENT_PAUSE_START + PRESENT_PAUSE_SPAN;
 const FINAL_ERA_DWELL_VIEWPORTS = 1.1;
-const WHEEL_RESISTANCE_PX = 55;
-const WHEEL_STEP_COOLDOWN_MS = 160;
+
+interface PresentPauseState {
+  progress: number;
+  storyProgress: number;
+  paused: boolean;
+}
+
+function progressWithPresentPause(progress: number): PresentPauseState {
+  if (progress < PRESENT_PAUSE_START) {
+    return {
+      progress: 0,
+      storyProgress: (progress / PRESENT_PAUSE_START) * PRESENT_SCROLL,
+      paused: false,
+    };
+  }
+
+  if (progress <= PRESENT_PAUSE_END) {
+    return {
+      progress:
+        (progress - PRESENT_PAUSE_START) /
+        (PRESENT_PAUSE_END - PRESENT_PAUSE_START),
+      storyProgress: PRESENT_SCROLL,
+      paused: true,
+    };
+  }
+
+  return {
+    progress: 1,
+    storyProgress:
+      PRESENT_SCROLL +
+      ((progress - PRESENT_PAUSE_END) / (1 - PRESENT_PAUSE_END)) *
+        (1 - PRESENT_SCROLL),
+    paused: false,
+  };
+}
 
 function interpolateColour(from: string, to: string, mix: number): string {
   const fromValue = Number.parseInt(from.slice(1), 16);
@@ -76,7 +108,6 @@ export function initTimeline(): void {
   const canvas = requiredElement<HTMLCanvasElement>(timeline, "[data-earth-canvas]");
   const fallback = requiredElement<HTMLElement>(timeline, "[data-earth-fallback]");
   const copy = requiredElement<HTMLElement>(timeline, "[data-era-copy]");
-  const scrollTrack = requiredElement<HTMLElement>(timeline, ".scroll-track");
   const sourcePanelRoot = requiredElement<HTMLElement>(
     timeline,
     '[data-era-panel][data-era-layer="from"]',
@@ -96,7 +127,6 @@ export function initTimeline(): void {
     !canvas ||
     !fallback ||
     !copy ||
-    !scrollTrack ||
     !sourcePanelRoot ||
     !shortDateStack ||
     !sourceShortDate ||
@@ -120,29 +150,12 @@ export function initTimeline(): void {
   if (!fromPanel || !toPanel) return;
 
   timeline.dataset.enhanced = "true";
-  document.documentElement.classList.add("timeline-scroll-snap");
-
-  const snapStops = TIMELINE.map((era) => {
-    const stop = document.createElement("span");
-    stop.className = "scroll-stop";
-    stop.dataset.trackProgress = String(
-      trackProgressForTimelineProgress(era.scroll),
-    );
-    return stop;
-  });
-  scrollTrack.replaceChildren(...snapStops);
-
   const globe = createGlobe(canvas, fallback);
   const rootStyle = document.documentElement.style;
   const eraIndexes = new Map(TIMELINE.map((era, index) => [era.id, index]));
   let activeId = "";
   let segmentId = "";
   let scheduledFrame = 0;
-  let positionedSnapDistance = -1;
-  let snapPositions: number[] = [];
-  let wheelDelta = 0;
-  let wheelStepLocked = false;
-  let wheelStepTimer = 0;
 
   const bindPanel = (panel: EraPanelElements, era: TimelineEra): void => {
     panel.date.textContent = era.date;
@@ -165,23 +178,12 @@ export function initTimeline(): void {
       1,
       scrollDistance - window.innerHeight * FINAL_ERA_DWELL_VIEWPORTS,
     );
-
-    if (narrativeDistance !== positionedSnapDistance) {
-      positionedSnapDistance = narrativeDistance;
-      snapPositions = snapStops.map((stop) => {
-        const trackProgress = Number(stop.dataset.trackProgress ?? 0);
-        const position = trackProgress * narrativeDistance;
-        stop.style.top = `${position}px`;
-        return position;
-      });
-    }
-
     const rawProgress = Math.min(
       1,
       Math.max(0, -timeline.getBoundingClientRect().top / narrativeDistance),
     );
-    const presentPause = timelineProgressForTrackProgress(rawProgress);
-    const progress = presentPause.timelineProgress;
+    const presentPause = progressWithPresentPause(rawProgress);
+    const progress = presentPause.storyProgress;
     const state = stateForScrollFraction(progress);
     const { from, to, mix, active } = state;
 
@@ -228,7 +230,7 @@ export function initTimeline(): void {
     rootStyle.setProperty("--timeline-progress", String(progress));
     rootStyle.setProperty(
       "--reflection-progress",
-      String(presentPause.pauseProgress),
+      String(presentPause.progress),
     );
     timeline.classList.toggle("is-present", active.id === "present");
     timeline.classList.toggle("is-present-pause", presentPause.paused);
@@ -289,87 +291,7 @@ export function initTimeline(): void {
     scheduledFrame = window.requestAnimationFrame(update);
   };
 
-  const resetWheelStep = (): void => {
-    window.clearTimeout(wheelStepTimer);
-    wheelStepTimer = 0;
-    wheelDelta = 0;
-    wheelStepLocked = false;
-  };
-
-  const lockWheelStep = (): void => {
-    wheelStepLocked = true;
-    wheelStepTimer = window.setTimeout(() => {
-      wheelStepTimer = 0;
-      wheelDelta = 0;
-      wheelStepLocked = false;
-    }, WHEEL_STEP_COOLDOWN_MS);
-  };
-
-  const handleWheel = (event: WheelEvent): void => {
-    if (
-      event.ctrlKey ||
-      Math.abs(event.deltaX) >= Math.abs(event.deltaY) ||
-      snapPositions.length === 0
-    ) {
-      return;
-    }
-
-    const deltaScale =
-      event.deltaMode === WheelEvent.DOM_DELTA_LINE
-        ? 16
-        : event.deltaMode === WheelEvent.DOM_DELTA_PAGE
-          ? window.innerHeight
-          : 1;
-    const delta = event.deltaY * deltaScale;
-    const timelineTop = timeline.offsetTop;
-    const firstStop = timelineTop + snapPositions[0];
-    const lastStop = timelineTop + snapPositions.at(-1)!;
-    const currentScroll = window.scrollY;
-    const approachingFirstStop =
-      delta > 0 &&
-      currentScroll < firstStop &&
-      currentScroll + delta >= firstStop;
-
-    if (
-      (!approachingFirstStop && currentScroll < firstStop - 1) ||
-      currentScroll > lastStop + 1 ||
-      (currentScroll <= firstStop + 1 && delta < 0) ||
-      (currentScroll >= lastStop - 1 && delta > 0)
-    ) {
-      resetWheelStep();
-      return;
-    }
-
-    event.preventDefault();
-
-    if (wheelStepLocked) return;
-
-    wheelDelta += delta;
-    if (Math.abs(wheelDelta) < WHEEL_RESISTANCE_PX) return;
-
-    const direction = wheelDelta > 0 ? 1 : -1;
-    const currentOffset = currentScroll - timelineTop;
-    const targetIndex =
-      direction > 0
-        ? snapPositions.findIndex((position) => position > currentOffset + 1)
-        : snapPositions.findLastIndex(
-            (position) => position < currentOffset - 1,
-          );
-
-    if (targetIndex < 0) return;
-
-    wheelDelta = 0;
-    lockWheelStep();
-    window.scrollTo({
-      top: timelineTop + snapPositions[targetIndex],
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth",
-    });
-  };
-
   document.addEventListener("scroll", scheduleUpdate, { passive: true });
-  window.addEventListener("wheel", handleWheel, { passive: false });
   window.addEventListener("resize", scheduleUpdate);
   update();
 

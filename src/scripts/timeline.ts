@@ -52,12 +52,6 @@ export interface TimelineState {
   progress: number;
 }
 
-export interface TimelineTrackState {
-  pauseProgress: number;
-  timelineProgress: number;
-  paused: boolean;
-}
-
 const CORE_TIMELINE: readonly TimelineEra[] = [
   {
     id: "formation",
@@ -1290,9 +1284,6 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
 ];
 
 const PRESENT_SCROLL = 0.58;
-const PRESENT_PAUSE_SPAN = 0.04;
-const PRESENT_PAUSE_START = PRESENT_SCROLL * (1 - PRESENT_PAUSE_SPAN);
-const PRESENT_PAUSE_END = PRESENT_PAUSE_START + PRESENT_PAUSE_SPAN;
 
 function balanceTimeline(eras: readonly TimelineEra[]): readonly TimelineEra[] {
   const ordered = [...eras].sort(
@@ -1328,58 +1319,6 @@ function clampFraction(value: number): number {
 
 function smoothstep(value: number): number {
   return value * value * (3 - 2 * value);
-}
-
-export function timelineProgressForTrackProgress(
-  progress: number,
-): TimelineTrackState {
-  const trackProgress = clampFraction(progress);
-
-  if (trackProgress < PRESENT_PAUSE_START) {
-    return {
-      pauseProgress: 0,
-      timelineProgress:
-        (trackProgress / PRESENT_PAUSE_START) * PRESENT_SCROLL,
-      paused: false,
-    };
-  }
-
-  if (trackProgress <= PRESENT_PAUSE_END) {
-    return {
-      pauseProgress:
-        (trackProgress - PRESENT_PAUSE_START) /
-        (PRESENT_PAUSE_END - PRESENT_PAUSE_START),
-      timelineProgress: PRESENT_SCROLL,
-      paused: true,
-    };
-  }
-
-  return {
-    pauseProgress: 1,
-    timelineProgress:
-      PRESENT_SCROLL +
-      ((trackProgress - PRESENT_PAUSE_END) / (1 - PRESENT_PAUSE_END)) *
-        (1 - PRESENT_SCROLL),
-    paused: false,
-  };
-}
-
-export function trackProgressForTimelineProgress(progress: number): number {
-  const timelineProgress = clampFraction(progress);
-
-  if (timelineProgress < PRESENT_SCROLL) {
-    return (
-      (timelineProgress / PRESENT_SCROLL) * PRESENT_PAUSE_START
-    );
-  }
-
-  if (timelineProgress === PRESENT_SCROLL) return PRESENT_PAUSE_START;
-
-  return (
-    PRESENT_PAUSE_END +
-    ((timelineProgress - PRESENT_SCROLL) / (1 - PRESENT_SCROLL)) *
-      (1 - PRESENT_PAUSE_END)
-  );
 }
 
 export function stateForScrollFraction(fraction: number): TimelineState {
