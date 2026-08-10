@@ -7,6 +7,7 @@ export type PlanetMode =
   | "mesozoic"
   | "impact"
   | "ice-age"
+  | "temperate"
   | "present"
   | "dry"
   | "red-giant"
@@ -852,6 +853,7 @@ const ADDITIONAL_TIMELINE: readonly TimelineEra[] = [
     description:
       "The Moon’s slow retreat finally makes its disc too small to hide the whole Sun. Annular eclipses continue, but the moving shadow of totality has left Earth forever.",
     visual: visualFrom("present", {
+      mode: "temperate",
       oceanCover: 0.69,
       iceCover: 0.02,
       land: "#68744a",
@@ -932,6 +934,7 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
     description:
       "If today’s East African extension continues, seawater could enter a widening rift and separate the Somali Plate from the rest of Africa. Rift systems can also stall, so this remains a scenario.",
     visual: visualFrom("present", {
+      mode: "temperate",
       oceanCover: 0.72,
       land: "#587b4b",
       detail: "#9bb877",
@@ -949,6 +952,7 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
     description:
       "Projecting present plate motions brings Africa into Europe and Australia into Southeast Asia. A long mountain belt may replace the Mediterranean while the Atlantic continues to widen.",
     visual: visualFrom("present", {
+      mode: "temperate",
       oceanCover: 0.68,
       land: "#657a45",
       detail: "#a6a15f",
@@ -999,6 +1003,7 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
     description:
       "The ageing Sun brightens by about one per cent every 110 million years. Faster rock weathering removes more carbon dioxide, while warmer climates squeeze ice and temperate habitats.",
     visual: visualFrom("present", {
+      mode: "temperate",
       oceanCover: 0.69,
       iceCover: 0.01,
       land: "#70784a",

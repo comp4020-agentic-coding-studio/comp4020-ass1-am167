@@ -93,6 +93,14 @@ describe("Earth timeline mapping", () => {
     }
   });
 
+  it("reserves the photographic present-day visual mode for the actual present", () => {
+    expect(
+      TIMELINE.filter((era) => era.visual.mode === "present").map(
+        (era) => era.id,
+      ),
+    ).toEqual(["present"]);
+  });
+
   it("interpolates continuously across an era segment", () => {
     const fromIndex = 8;
     const from = TIMELINE[fromIndex];

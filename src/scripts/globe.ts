@@ -258,9 +258,13 @@ function terrainColour(
     return { colour, ocean: 1 };
   }
 
-  const livingWorld = ["paleozoic", "mesozoic", "ice-age", "present"].includes(
-    visual.mode,
-  );
+  const livingWorld = [
+    "paleozoic",
+    "mesozoic",
+    "ice-age",
+    "temperate",
+    "present",
+  ].includes(visual.mode);
   const subtropicalDryness = smoothstep(0.22, 0.48, latitude) *
     (1 - smoothstep(0.48, 0.78, latitude));
   const vegetation = livingWorld
