@@ -1,7 +1,7 @@
 import { createGlobe } from "./globe";
 import { initStarfield } from "./starfield";
 import type { TimelineEra } from "./timeline";
-import { stateForScrollFraction, TIMELINE } from "./timeline";
+import { moonHeatFor, stateForScrollFraction, TIMELINE } from "./timeline";
 
 const PRESENT_SCROLL = TIMELINE.find((era) => era.id === "present")?.scroll ?? 0.58;
 const PRESENT_PAUSE_SPAN = 0.04;
@@ -247,12 +247,12 @@ export function initTimeline(): void {
       interpolateColour(from.visual.atmosphere, to.visual.atmosphere, mix),
     );
     const sunStrength = from.visual.sun + (to.visual.sun - from.visual.sun) * mix;
-    const heatStrength =
-      from.visual.heat + (to.visual.heat - from.visual.heat) * mix;
     const fromMoonPresence = hasVisibleMoon(from) ? 1 : 0;
     const toMoonPresence = hasVisibleMoon(to) ? 1 : 0;
     const moonPresence =
       fromMoonPresence + (toMoonPresence - fromMoonPresence) * mix;
+    const moonHeat =
+      moonHeatFor(from) + (moonHeatFor(to) - moonHeatFor(from)) * mix;
     const fromWhiteDwarf = from.id === "after-earth" ? from.visual.sun : 0;
     const toWhiteDwarf = to.id === "after-earth" ? to.visual.sun : 0;
     const whiteDwarfStrength =
@@ -274,7 +274,7 @@ export function initTimeline(): void {
       String(from.visual.opacity + (to.visual.opacity - from.visual.opacity) * mix),
     );
     rootStyle.setProperty("--moon-opacity", String(moonPresence));
-    rootStyle.setProperty("--moon-heat", String(heatStrength));
+    rootStyle.setProperty("--moon-heat", String(moonHeat));
 
     if (active.id !== activeId) {
       activeId = active.id;

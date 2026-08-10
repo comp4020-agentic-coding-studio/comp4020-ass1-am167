@@ -320,7 +320,7 @@ const CORE_TIMELINE: readonly TimelineEra[] = [
       iceCover: 0,
       oceanCover: 0.46,
       heat: 0.5,
-      sun: 0.12,
+      sun: 0,
       opacity: 1,
     },
   },
@@ -335,7 +335,7 @@ const CORE_TIMELINE: readonly TimelineEra[] = [
     description:
       "The Sun approaches the end of core hydrogen fusion and begins evolving away from the main sequence. Earth has long been sterile, dry and intensely hot.",
     visual: {
-      mode: "red-giant",
+      mode: "dry",
       background: "#1d0a06",
       surface: "#2d110d",
       ocean: "#37130d",
@@ -347,7 +347,7 @@ const CORE_TIMELINE: readonly TimelineEra[] = [
       iceCover: 0,
       oceanCover: 0,
       heat: 0.82,
-      sun: 0.42,
+      sun: 0.05,
       opacity: 1,
     },
   },
@@ -859,7 +859,6 @@ const ADDITIONAL_TIMELINE: readonly TimelineEra[] = [
       land: "#68744a",
       detail: "#9ca86b",
       heat: 0.22,
-      sun: 0.06,
     }),
   },
   {
@@ -891,7 +890,7 @@ const ADDITIONAL_TIMELINE: readonly TimelineEra[] = [
     title: "Earth becomes Venus-like.",
     description:
       "With surface water gone, a thick hot atmosphere hides the ground beneath bright cloud. Any remaining familiar conditions vanish well before the Sun becomes a giant.",
-    visual: visualFrom("red-giant", {
+    visual: visualFrom("last-ocean", {
       mode: "dry",
       background: "#1d1007",
       surface: "#9d703a",
@@ -901,7 +900,6 @@ const ADDITIONAL_TIMELINE: readonly TimelineEra[] = [
       glow: "#e9a24d",
       cloudCover: 0.72,
       heat: 0.78,
-      sun: 0.32,
     }),
   },
 ];
@@ -1009,7 +1007,6 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
       land: "#70784a",
       detail: "#9c9b5f",
       heat: 0.2,
-      sun: 0.05,
     }),
   },
   {
@@ -1029,7 +1026,6 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
       detail: "#8b8052",
       cloudCover: 0.38,
       heat: 0.34,
-      sun: 0.1,
     }),
   },
   {
@@ -1086,7 +1082,6 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
       detail: "#8d7950",
       cloudCover: 0.42,
       heat: 0.57,
-      sun: 0.17,
     }),
   },
   {
@@ -1106,7 +1101,6 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
       atmosphere: "#d59a65",
       cloudCover: 0.32,
       heat: 0.64,
-      sun: 0.2,
     }),
   },
   {
@@ -1126,7 +1120,6 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
       atmosphere: "#d79a64",
       cloudCover: 0.28,
       heat: 0.68,
-      sun: 0.22,
     }),
   },
   {
@@ -1147,7 +1140,6 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
       atmosphere: "#bd815a",
       cloudCover: 0.1,
       heat: 0.72,
-      sun: 0.25,
     }),
   },
   {
@@ -1168,7 +1160,6 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
       atmosphere: "#9d694e",
       cloudCover: 0.04,
       heat: 0.76,
-      sun: 0.3,
     }),
   },
   {
@@ -1182,14 +1173,14 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
     description:
       "Long after the last life, the brighter Sun illuminates a dry, chemically altered surface. The planet still turns, but weather and biology no longer soften its rock.",
     visual: visualFrom("red-giant", {
-      mode: "red-giant",
+      mode: "dry",
       surface: "#552116",
       land: "#78301c",
       detail: "#c6532a",
       atmosphere: "#bf5b35",
       cloudCover: 0.06,
       heat: 0.86,
-      sun: 0.36,
+      sun: 0.04,
     }),
   },
   {
@@ -1203,7 +1194,8 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
     description:
       "Fusion shifts into a shell around an inert helium core. The core contracts, the Sun’s outer layers expand, and the slow transition toward a red giant accelerates.",
     visual: visualFrom("red-giant", {
-      sun: 0.55,
+      mode: "red-giant",
+      sun: 0.45,
       heat: 0.9,
       glow: "#ff5b28",
     }),
@@ -1219,6 +1211,7 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
     description:
       "The Sun becomes a true red giant, engulfing Mercury and Venus while its luminosity surges. Whether Earth’s widening orbit stays ahead of the stellar envelope is still disputed.",
     visual: visualFrom("red-giant", {
+      mode: "red-giant",
       sun: 0.82,
       heat: 0.98,
       glow: "#ff3f1d",
@@ -1236,6 +1229,7 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
     description:
       "Helium ignites in the solar core. The Sun settles into a smaller, hotter helium-burning phase for a comparatively brief interval before exhausting that fuel too.",
     visual: visualFrom("red-giant", {
+      mode: "red-giant",
       background: "#170806",
       sun: 0.6,
       heat: 0.9,
@@ -1255,6 +1249,7 @@ const FUTURE_TIMELINE: readonly TimelineEra[] = [
     description:
       "With core helium spent, alternating hydrogen- and helium-shell burning drives a larger, pulsating giant. Strong stellar winds begin carrying much of the Sun into space.",
     visual: visualFrom("red-giant", {
+      mode: "red-giant",
       background: "#300603",
       sun: 1,
       heat: 1,
@@ -1366,4 +1361,18 @@ export function stateForScrollFraction(fraction: number): TimelineState {
 
 export function timeForScrollFraction(fraction: number): number {
   return stateForScrollFraction(fraction).millionYearsFromNow;
+}
+
+/**
+ * Strength for the Moon's orange heated overlay.
+ * Past eras use Earth heat (impact/molten glow). Future eras track the
+ * expanding Sun — not climate `heat`, which rises billions of years earlier.
+ * Scaled so +5.4 BY (core-hydrogen-ends, sun ≈ 0.45) is a clear visible start
+ * above the CSS glow threshold (~0.58).
+ */
+export function moonHeatFor(era: TimelineEra): number {
+  if (era.millionYearsFromNow < 0) {
+    return era.visual.heat;
+  }
+  return Math.min(1, era.visual.sun * (0.75 / 0.45));
 }
