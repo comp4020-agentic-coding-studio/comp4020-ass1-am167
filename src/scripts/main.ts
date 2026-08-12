@@ -44,6 +44,21 @@ function progressWithPresentPause(progress: number): PresentPauseState {
   };
 }
 
+// The inverse of progressWithPresentPause: where in the raw scroll a given
+// point in the story lives. Without this a jump control would land short of
+// the present by the width of the pause, and short of everything after it.
+function rawProgressForStory(storyProgress: number): number {
+  const story = Math.min(1, Math.max(0, storyProgress));
+  if (story < PRESENT_SCROLL) {
+    return (story / PRESENT_SCROLL) * PRESENT_PAUSE_START;
+  }
+  if (story === PRESENT_SCROLL) return PRESENT_PAUSE_START;
+  return (
+    PRESENT_PAUSE_END +
+    ((story - PRESENT_SCROLL) / (1 - PRESENT_SCROLL)) * (1 - PRESENT_PAUSE_END)
+  );
+}
+
 function interpolateColour(from: string, to: string, mix: number): string {
   const fromValue = Number.parseInt(from.slice(1), 16);
   const toValue = Number.parseInt(to.slice(1), 16);
@@ -353,6 +368,27 @@ export function initTimeline(): void {
     restoreNarrativePosition();
     scheduleUpdate();
   };
+
+  // Jumping is instant rather than smooth: these distances run to tens of
+  // thousands of pixels, and an animated scroll across that reads as a hang.
+  const scrollToEra = (eraId: string): void => {
+    const era = TIMELINE.find((stop) => stop.id === eraId);
+    if (!era) return;
+    const { narrativeDistance } = scrollMetrics();
+    const timelineTop = timeline.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo(
+      0,
+      Math.round(timelineTop + rawProgressForStory(era.scroll) * narrativeDistance),
+    );
+    scheduleUpdate();
+  };
+
+  for (const control of timeline.querySelectorAll<HTMLElement>("[data-era-jump]")) {
+    control.addEventListener("click", () => {
+      const eraId = control.dataset.eraJump;
+      if (eraId) scrollToEra(eraId);
+    });
+  }
 
   document.addEventListener("scroll", scheduleUpdate, { passive: true });
   window.addEventListener("resize", handleResize);

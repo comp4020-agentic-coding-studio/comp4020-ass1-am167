@@ -1313,6 +1313,14 @@ export const TIMELINE: readonly TimelineEra[] = balanceTimeline([
   ...FUTURE_TIMELINE,
 ]);
 
+// The spine of the story: the eras the meter offers as jump targets. The other
+// fifty stops stay decorative ticks — sixty-two controls would put that many
+// tab stops between the wordmark and the conclusion, and land them roughly
+// eight pixels apart on a rail that is only ever a few hundred pixels tall.
+export const MILESTONE_ERA_IDS: ReadonlySet<string> = new Set(
+  CORE_TIMELINE.map((era) => era.id),
+);
+
 function clampFraction(value: number): number {
   return Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
 }
