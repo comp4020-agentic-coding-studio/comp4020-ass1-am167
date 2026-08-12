@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  MILESTONE_ERA_IDS,
   moonHeatFor,
   shouldLoadPresentTextures,
   stateForScrollFraction,
@@ -101,6 +102,28 @@ describe("Earth timeline mapping", () => {
         (era) => era.id,
       ),
     ).toEqual(["present"]);
+  });
+
+  it("names a milestone spine that spans the whole journey in order", () => {
+    const milestones = TIMELINE.filter((era) => MILESTONE_ERA_IDS.has(era.id));
+
+    // Every named milestone has to exist in the balanced timeline.
+    expect(milestones).toHaveLength(MILESTONE_ERA_IDS.size);
+    expect(milestones.length).toBeGreaterThanOrEqual(8);
+    expect(milestones.length).toBeLessThan(TIMELINE.length / 2);
+
+    // The spine has to reach both ends, or the jump controls cannot take a
+    // visitor back to the start or on to the end.
+    expect(milestones[0].id).toBe(TIMELINE[0].id);
+    expect(milestones.at(-1)?.id).toBe(TIMELINE.at(-1)?.id);
+    expect(MILESTONE_ERA_IDS.has("present")).toBe(true);
+
+    // Monotonic, so the controls read down the rail in chronological order.
+    for (let index = 1; index < milestones.length; index += 1) {
+      expect(milestones[index].scroll).toBeGreaterThan(
+        milestones[index - 1].scroll,
+      );
+    }
   });
 
   it("holds the photographic present-day maps back until the present approaches", () => {

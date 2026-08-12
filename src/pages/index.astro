@@ -1,6 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { TIMELINE } from "../scripts/timeline";
+import { MILESTONE_ERA_IDS, TIMELINE } from "../scripts/timeline";
 
 const firstEra = TIMELINE[0];
 ---
@@ -132,24 +132,39 @@ const firstEra = TIMELINE[0];
             </figcaption>
           </figure>
 
-          <div class="timeline-meter" aria-hidden="true">
-            <span>Birth</span>
+          <nav class="timeline-meter" aria-label="Jump through Earth's history">
+            <span aria-hidden="true">Birth</span>
             <span class="meter-track">
               <span class="meter-ticks">
                 {
-                  TIMELINE.map((era) => (
-                    <span
-                      class="meter-tick"
-                      style={`--event-position: ${era.scroll}`}
-                    />
-                  ))
+                  TIMELINE.map((era) =>
+                    MILESTONE_ERA_IDS.has(era.id) ? (
+                      <button
+                        type="button"
+                        class="meter-tick meter-tick-jump"
+                        style={`--event-position: ${era.scroll}`}
+                        data-era-jump={era.id}
+                        aria-label={`Jump to ${era.title} ${era.date}`}
+                      >
+                        <span class="meter-tick-label" aria-hidden="true">
+                          {era.shortDate}
+                        </span>
+                      </button>
+                    ) : (
+                      <span
+                        class="meter-tick"
+                        style={`--event-position: ${era.scroll}`}
+                        aria-hidden="true"
+                      />
+                    ),
+                  )
                 }
               </span>
-              <span class="meter-fill"></span>
-              <span class="meter-cursor"></span>
+              <span class="meter-fill" aria-hidden="true"></span>
+              <span class="meter-cursor" aria-hidden="true"></span>
             </span>
-            <span>End</span>
-          </div>
+            <span aria-hidden="true">End</span>
+          </nav>
         </div>
       </div>
 
