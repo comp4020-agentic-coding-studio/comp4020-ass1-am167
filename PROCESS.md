@@ -14,15 +14,17 @@ scroll stops at the present and holds there before letting you continue.
 PRs #9, #10 and #11 tried to make each era harder to skip: first by accumulating
 wheel input, then by adding cooldown and smoothing on top. The obvious next step
 was a fourth attempt at tuning. Instead I reverted both merged PRs and closed the
-third, restoring browser-native scrolling.
+third, throwing away work that had already been reviewed and shipped to main.
 
 What made that call possible was that the tests never disagreed with me. The
 threshold logic and DOM state were provably correct and `pnpm check` stayed green
 through all three attempts; what failed was using it — continuous scrolling
-registered as having stopped, and the copy jumped before settling. The deciding
-sensor had to be the interaction itself, not the suite. The boundary it set:
-friction added to a primary input has to improve things immediately, or the
-native behaviour is the better baseline.
+registered as having stopped, the copy jumped before settling, and the smoothing
+I added to fix that made the transition feel less direct rather than more. Each
+attempt moved the numbers and not the experience. The deciding sensor had to be
+the interaction itself, not the suite, and the boundary it set holds: friction
+added to a primary input has to improve things immediately, or browser-native
+behaviour is the better baseline.
 [`556b153`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/556b153)
 [`77740fb`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/77740fb)
 [PR #11](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/pull/11)
