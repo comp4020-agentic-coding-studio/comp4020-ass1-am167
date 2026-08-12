@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   moonHeatFor,
+  shouldLoadPresentTextures,
   stateForScrollFraction,
   TIMELINE,
   timeForScrollFraction,
@@ -100,6 +101,27 @@ describe("Earth timeline mapping", () => {
         (era) => era.id,
       ),
     ).toEqual(["present"]);
+  });
+
+  it("holds the photographic present-day maps back until the present approaches", () => {
+    const present = TIMELINE.find((era) => era.visual.mode === "present");
+    expect(present).toBeDefined();
+    const presentScroll = present?.scroll ?? 0;
+
+    // The deep past must not pay for a texture set it never shows.
+    expect(shouldLoadPresentTextures(0)).toBe(false);
+    expect(shouldLoadPresentTextures(presentScroll / 2)).toBe(false);
+
+    // They have to be ready by the time the present is on screen.
+    expect(shouldLoadPresentTextures(presentScroll)).toBe(true);
+    expect(shouldLoadPresentTextures(1)).toBe(true);
+
+    // The request starts far enough ahead that the planet is never blank,
+    // but not so early that it lands in the opening third of the journey.
+    const lead = presentScroll - 0.08;
+    expect(shouldLoadPresentTextures(lead + 0.001)).toBe(true);
+    expect(shouldLoadPresentTextures(lead - 0.001)).toBe(false);
+    expect(lead).toBeGreaterThan(0.33);
   });
 
   it("keeps the red-giant disc off until the Sun leaves the main sequence", () => {

@@ -122,6 +122,7 @@ export function initTimeline(): void {
   );
   const globeLabel = requiredElement<HTMLElement>(timeline, "[data-globe-label]");
   const scrollCue = requiredElement<HTMLElement>(document, "[data-scroll-cue]");
+  const announcer = requiredElement<HTMLElement>(timeline, "[data-era-announcer]");
 
   if (
     !canvas ||
@@ -171,17 +172,51 @@ export function initTimeline(): void {
     }
   };
 
+  // How far the visitor is through the story, kept so that a viewport change
+  // can restore the same moment rather than the same pixel offset. The dwell
+  // after the final era is tracked separately because it is not narrative
+  // time — it is the pause that lets the last panel be read.
+  let narrativeAnchor = 0;
+  let dwellAnchor = 0;
+  let anchored = false;
+
+  const scrollMetrics = (): {
+    scrollDistance: number;
+    narrativeDistance: number;
+  } => {
+    const scrollDistance = Math.max(1, timeline.offsetHeight - window.innerHeight);
+    return {
+      scrollDistance,
+      narrativeDistance: Math.max(
+        1,
+        scrollDistance - window.innerHeight * FINAL_ERA_DWELL_VIEWPORTS,
+      ),
+    };
+  };
+
   const update = (): void => {
     scheduledFrame = 0;
-    const scrollDistance = Math.max(1, timeline.offsetHeight - window.innerHeight);
-    const narrativeDistance = Math.max(
-      1,
-      scrollDistance - window.innerHeight * FINAL_ERA_DWELL_VIEWPORTS,
-    );
+    const { scrollDistance, narrativeDistance } = scrollMetrics();
+    const offsetIntoTimeline = -timeline.getBoundingClientRect().top;
     const rawProgress = Math.min(
       1,
-      Math.max(0, -timeline.getBoundingClientRect().top / narrativeDistance),
+      Math.max(0, offsetIntoTimeline / narrativeDistance),
     );
+
+    anchored = offsetIntoTimeline >= 0 && offsetIntoTimeline <= scrollDistance;
+    narrativeAnchor = rawProgress;
+    dwellAnchor =
+      scrollDistance > narrativeDistance
+        ? Math.min(
+            1,
+            Math.max(
+              0,
+              (offsetIntoTimeline - narrativeDistance) /
+                (scrollDistance - narrativeDistance),
+            ),
+          )
+        : 0;
+
     const presentPause = progressWithPresentPause(rawProgress);
     const progress = presentPause.storyProgress;
     const state = stateForScrollFraction(progress);
@@ -281,6 +316,12 @@ export function initTimeline(): void {
       globeLabel.textContent = `${
         hasVisibleMoon(active) ? "Earth and Moon" : "Earth"
       } during ${active.period}, ${active.date}`;
+      if (announcer) {
+        // Announced only on an era change, not on every scrolled frame.
+        announcer.textContent = `Era ${
+          (eraIndexes.get(active.id) ?? 0) + 1
+        } of ${TIMELINE.length}: ${active.title} ${active.date}.`;
+      }
     }
 
     if (scrollCue) scrollCue.classList.toggle("is-hidden", progress > 0.025);
@@ -291,8 +332,30 @@ export function initTimeline(): void {
     scheduledFrame = window.requestAnimationFrame(update);
   };
 
+  // A resize changes both the viewport and the timeline's own height, so the
+  // visitor's pixel offset now points at a different moment in the story.
+  // Put them back where they were reading before repainting.
+  const restoreNarrativePosition = (): void => {
+    if (!anchored) return;
+    const { scrollDistance, narrativeDistance } = scrollMetrics();
+    const timelineTop = timeline.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo(
+      0,
+      Math.round(
+        timelineTop +
+          narrativeAnchor * narrativeDistance +
+          dwellAnchor * Math.max(0, scrollDistance - narrativeDistance),
+      ),
+    );
+  };
+
+  const handleResize = (): void => {
+    restoreNarrativePosition();
+    scheduleUpdate();
+  };
+
   document.addEventListener("scroll", scheduleUpdate, { passive: true });
-  window.addEventListener("resize", scheduleUpdate);
+  window.addEventListener("resize", handleResize);
   update();
 
   document.documentElement.style.setProperty(

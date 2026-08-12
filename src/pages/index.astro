@@ -59,7 +59,7 @@ const firstEra = TIMELINE[0];
     <section class="timeline" data-timeline data-testid="earth-timeline">
       <div class="timeline-frame">
         <div class="timeline-stage">
-          <div class="era-copy" data-era-copy aria-atomic="true">
+          <div class="era-copy" data-era-copy>
             <article class="era-panel" data-era-panel data-era-layer="from">
               <p class="era-kicker">
                 <span data-era-counter>01</span>
@@ -154,6 +154,15 @@ const firstEra = TIMELINE[0];
       </div>
 
       <div class="scroll-track" aria-hidden="true"></div>
+
+      <p
+        class="visually-hidden"
+        data-era-announcer
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+      </p>
 
       <ol class="timeline-fallback" aria-label="Earth's eras in chronological order">
         {
