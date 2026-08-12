@@ -2,29 +2,67 @@
 
 ## What I built
 
+Earth Through Time is a scroll-driven explainer. One WebGL globe carries 62
+researched moments from the planet's formation to the white dwarf that outlives
+it, with "now" placed at 58% of the journey so the future gets real space. The
+scroll stops at the present and holds there before letting you continue.
 
 ## The moments that mattered
 
-### Abandoned scroll resistance after testing it in use
+### Abandoned scroll resistance after using it
 
-The scroll-resistance experiment across PRs #9, #10, and #11 tried to make each time period harder to skip, first by accumulating wheel input and then by adding cooldown and smoothing adjustments. In actual use, the resistance was too aggressive: continuous scrolling was interpreted as having stopped, the copy jumped before settling into the next period, and later attempts to smooth the state made the overall transition feel less direct. Automated tests could verify the threshold logic and DOM state, but they could not establish that the interaction felt good. Rather than keep layering corrections onto a worse interaction, I reverted the merged PR #10 and PR #9 changes and closed the unmerged PR #11, restoring the native continuous timeline that existed before the experiment. This made direct interaction feedback the deciding sensor and established a useful boundary: friction added to a primary input needs to improve the experience immediately, or the simpler browser-native behaviour is the better baseline. [`556b153`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/556b153) [`77740fb`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/77740fb) [PR #11](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/pull/11)
+PRs #9, #10 and #11 tried to make each era harder to skip: first by accumulating
+wheel input, then by adding cooldown and smoothing on top. The obvious next step
+was a fourth attempt at tuning. Instead I reverted both merged PRs and closed the
+third, throwing away work that had already been reviewed and shipped to main.
+
+What made that call possible was that the tests never disagreed with me. The
+threshold logic and DOM state were provably correct and `pnpm check` stayed green
+through all three attempts; what failed was using it — continuous scrolling
+registered as having stopped, the copy jumped before settling, and the smoothing
+I added to fix that made the transition feel less direct rather than more. Each
+attempt moved the numbers and not the experience. The deciding sensor had to be
+the interaction itself, not the suite, and the boundary it set holds: friction
+added to a primary input has to improve things immediately, or browser-native
+behaviour is the better baseline.
+[`556b153`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/556b153)
+[`77740fb`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/77740fb)
+[PR #11](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/pull/11)
 
 ### Enforced test immutability at the harness level
 
-The starter test template invited adding new tests every time something broke, which meant the spec grew with every iteration instead of staying focused on the real constraints. Instead of re-prompting the agent to ignore this invitation each time, I removed the starter test, made `spec/invariants.test.ts` immutable, and hardened `CLAUDE.md` to require explicit approval for new tests. This shifted the default from "add a test" to "fix the implementation," preventing scope creep and keeping the spec focused on the invariants that actually matter. The verification was immediate: `pnpm check` now rejects new test additions outright, and the spec stayed stable across all subsequent work. [`8271304`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/8271304)
-
-### Added a boundary rule for deep testing
-
-The temptation to check keyboard-only navigation, mid-interaction resizes, and slow-network behaviour crept into every review cycle—each time it was reasonable to check "while we're at it," but together they ballooned the default verification. Instead of re-prompting the agent to ignore this creep each cycle, I added an explicit `CLAUDE.md` rule that these are real extra work and only happen on request, not folded into routine final checks. This protected the default workflow from expanding and made it clear when deeper testing is a change in scope, not a refinement. The result was immediate: subsequent final checks stayed focused on marked viewports and the check suite, and keyboard-only or slow-connection testing only ran when I explicitly asked for it. [`06f0900`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/06f0900)
-
-### Turned implementation verification into a reusable harness
-
-The performance test guarded payload and frame-time budgets, but it could not show that every era remained valid, the built fallback matched the source timeline, or scrolling actually updated the visible and accessible DOM state. Once broader tests were explicitly requested, I treated the gap as a harness problem rather than a one-off review task: I added pure timeline checks, built-output checks, and a JSDOM interaction test that drives the present-day pause and final era while mocking only the expensive renderers. I also changed `pnpm test` to build first, because tests against stale `dist/` output could otherwise pass or fail for the wrong version of the page, and documented focused commands in `CLAUDE.md` so future sessions can select the relevant feedback loop. The resulting harness runs 35 tests through `pnpm test` and the full type/build/lint/test gate through `pnpm check`, both of which passed when the fix landed. [`943684f`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/943684f)
+The starter template invited a new test every time something broke, so the spec
+grew with each iteration instead of staying focused on the real constraints.
+Rather than re-prompting the agent to resist that every session, I removed the
+starter test, made `spec/invariants.test.ts` immutable, and hardened `CLAUDE.md`
+to require explicit approval before any test is added. That moved the default
+from "add a test" to "fix the implementation". It held: the spec stayed stable
+across every change that followed, and new coverage since has arrived only when
+I asked for it.
+[`8271304`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/8271304)
 
 ### Separated present-like climate from the present-day image
 
-Direct use exposed a gap the existing timeline tests had missed: at +10, +50, +500 and +600 million years, today's recognisable Earth map and city lights reappeared. Those entries borrowed the present visual as a convenient colour preset, but the globe renderer also treated `present` as an instruction to load the photographic day, ocean, cloud and night-light maps. I split that overloaded state by adding a temperate procedural mode for future Earths and reserving the photographic mode for the actual present milestone. A focused regression test now enforces that boundary across the entire timeline, turning one visual observation into protection against the same inheritance mistake recurring in another era.
+Using the finished page exposed something the timeline tests had missed: at +10,
++50, +500 and +600 million years, today's recognisable coastlines and city lights
+reappeared. Those eras had borrowed the present's visual as a convenient colour
+preset, but the renderer also read `present` as an instruction to load the
+photographic maps. The obvious fix was to correct the four entries. Instead I
+split the overloaded state — a temperate procedural mode for future Earths, the
+photographic mode reserved for the actual present — and wrote a regression test
+enforcing that boundary across all 62 eras, so the same inheritance mistake
+cannot recur in a new one.
+[`0408dd6`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/0408dd6)
 
-### Built a layered planet that responds independently to each era
+### Read the finished page instead of the checks
 
-The first Earth was a single painted sphere where every visual change — red heating, white atmosphere, cloud shifts — happened at once. Instead of painting all effects into one texture and hoping it looked coherent, I split the planet into independent renderers: textured terrain, ocean with specular mask, rotating cloud shell, and atmospheric scattering. Each layer responds to era transitions separately, so the Sun's expansion can heat the planet and Moon visibly without flattening their appearance into one wash effect. The approach also made the timeline's visual transitions feel coherent rather than tacked on, because each layer's change reinforced the others. The no-WebGL fallback received matching depth, clouds, and atmosphere treatment so the CSS globe no longer reads as a flat disc. I verified this worked by checking the page at both marked viewports and watching the planet through several era transitions to confirm each layer responded as intended. [`5c17951`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/5c17951)
+By the final week the page passed everything: 47 tests, both marked viewports, a
+full review against the published spec. Read aloud, the conclusion was still
+words with no real meaning — "Endings are transformations", "Earth is temporary,
+but not insignificant". No check I could write would catch that. Rather than
+rewrite by feel, I worked out why the good lines were good: the ones that land
+name things — oceans, ice, a pixel, a tenth of a second — and the ones that
+failed named concepts. I rewrote against that rule, then verified the two lines I
+kept rather than trusting them: written history really is 0.095 s of a 24-hour
+Earth, and 0.015 px of this page's scroll.
+[`8e47c52`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/8e47c52)
