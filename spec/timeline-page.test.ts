@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { JSDOM } from "jsdom";
 import { describe, expect, it } from "vitest";
 
-import { TIMELINE } from "../src/scripts/timeline";
+import { MILESTONE_ERA_IDS, TIMELINE } from "../src/scripts/timeline";
 
 // These checks compare the built page with the source timeline so Astro
 // template changes cannot silently make the readable fallback incomplete.
@@ -41,6 +41,37 @@ describe("built Earth timeline", () => {
         Number(tick.style.getPropertyValue("--event-position")),
         TIMELINE[index].id,
       ).toBeCloseTo(TIMELINE[index].scroll);
+    }
+  });
+
+  it("offers a named, operable control for every milestone", () => {
+    const jumps = [
+      ...document.querySelectorAll<HTMLElement>("[data-era-jump]"),
+    ];
+
+    expect(jumps).toHaveLength(MILESTONE_ERA_IDS.size);
+
+    for (const jump of jumps) {
+      const era = TIMELINE.find((stop) => stop.id === jump.dataset.eraJump);
+      expect(era, `unknown era ${jump.dataset.eraJump}`).toBeDefined();
+      // A real button, so it is reachable and operable by keyboard for free.
+      expect(jump.tagName).toBe("BUTTON");
+      expect(jump.getAttribute("type")).toBe("button");
+      // Named by its destination rather than by its position on the rail.
+      expect(jump.getAttribute("aria-label")).toContain(era?.title);
+      expect(
+        Number(jump.style.getPropertyValue("--event-position")),
+      ).toBeCloseTo(era?.scroll ?? -1);
+    }
+  });
+
+  it("keeps the non-milestone ticks decorative", () => {
+    const ticks = [...document.querySelectorAll<HTMLElement>(".meter-tick")];
+    const decorative = ticks.filter((tick) => !tick.hasAttribute("data-era-jump"));
+
+    expect(decorative).toHaveLength(TIMELINE.length - MILESTONE_ERA_IDS.size);
+    for (const tick of decorative) {
+      expect(tick.tagName).not.toBe("BUTTON");
     }
   });
 

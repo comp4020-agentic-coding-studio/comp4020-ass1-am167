@@ -170,7 +170,7 @@ a {
   align-items: center;
   gap: 0.85rem;
   color: var(--muted-blue);
-  font-size: 0.58rem;
+  font-size: 0.62rem;
   font-variant-numeric: tabular-nums;
   font-weight: 650;
   letter-spacing: 0.16em;
@@ -383,7 +383,7 @@ a {
   gap: 0.58rem;
   margin: 0 0 clamp(2rem, 4vh, 3.4rem);
   color: #8ca0b4;
-  font-size: 0.58rem;
+  font-size: 0.62rem;
   font-variant-numeric: tabular-nums;
   font-weight: 680;
   letter-spacing: 0.18em;
@@ -447,7 +447,7 @@ a {
 .reflection-kicker {
   margin: 0 0 0.65rem;
   color: var(--era-atmosphere);
-  font-size: 0.56rem;
+  font-size: 0.6rem;
   font-weight: 720;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -477,7 +477,7 @@ a {
   gap: 0.7rem;
   margin-top: 1rem;
   color: #6f8aa0;
-  font-size: 0.48rem;
+  font-size: 0.56rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -507,7 +507,7 @@ a {
   gap: 0.7rem;
   margin: clamp(2.3rem, 5vh, 4rem) 0 0;
   color: #6f8499;
-  font-size: 0.58rem;
+  font-size: 0.62rem;
   font-weight: 650;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -841,7 +841,7 @@ a {
   align-items: center;
   gap: 0.7rem;
   color: #8399ac;
-  font-size: 0.56rem;
+  font-size: 0.6rem;
   font-variant-numeric: tabular-nums;
   font-weight: 680;
   letter-spacing: 0.2em;
@@ -885,13 +885,17 @@ a {
 }
 
 .timeline-meter {
+  /* Above the planet layer (.earth-figure is z-index 2, .moon is 4) so the
+     rail's hover and focus labels are not painted over by the Moon. */
+  position: relative;
+  z-index: 5;
   display: grid;
   grid-column: 3;
   grid-template-rows: auto 1fr auto;
   place-items: center;
   height: min(34rem, 62vh);
   color: #64778a;
-  font-size: 0.5rem;
+  font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.19em;
   text-transform: uppercase;
@@ -933,6 +937,69 @@ a {
   height: 1px;
   background: rgb(201 225 241 / 34%);
   transform: translate(-50%, -50%);
+}
+
+/* The twelve milestone stops are real buttons, so they are reachable and
+   operable by keyboard without any scripting of their own. They keep the
+   .meter-tick positioning and replace its 1px line with a larger transparent
+   hit area, drawing the line in ::after instead. */
+.meter-tick-jump {
+  z-index: 1;
+  width: 0.95rem;
+  height: 0.85rem;
+  padding: 0;
+  border: 0;
+  appearance: none;
+  background: none;
+  cursor: pointer;
+}
+
+.meter-tick-jump::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.72rem;
+  height: 1px;
+  background: rgb(216 235 248 / 74%);
+  content: "";
+  transform: translate(-50%, -50%);
+  transition:
+    width 180ms ease,
+    background-color 180ms ease;
+}
+
+.meter-tick-jump:hover::after,
+.meter-tick-jump:focus-visible::after {
+  width: 1.15rem;
+  background: #eff8ff;
+}
+
+.meter-tick-label {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 0.5rem);
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--hairline);
+  border-radius: 0.2rem;
+  opacity: 0;
+
+  /* The rail sits beside the planet and Moon, so the label needs to be opaque
+     enough to stay readable when it lands on a lit limb. */
+  background: #04080f;
+  box-shadow: 0 0.35rem 1.1rem rgb(0 0 0 / 55%);
+  color: #cfe2f2;
+  font-size: 0.6rem;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: opacity 160ms ease;
+}
+
+.meter-tick-jump:hover .meter-tick-label,
+.meter-tick-jump:focus-visible .meter-tick-label {
+  opacity: 1;
 }
 
 .meter-cursor {
@@ -1290,7 +1357,7 @@ a {
   .era-kicker {
     justify-content: center;
     margin-bottom: clamp(1rem, 2.6vh, 1.45rem);
-    font-size: 0.52rem;
+    font-size: 0.56rem;
   }
 
   .era-kicker-line {
@@ -1335,7 +1402,7 @@ a {
 
   .reflection-pause {
     margin-top: 0.65rem;
-    font-size: 0.42rem;
+    font-size: 0.5rem;
   }
 
   .conclusion {
@@ -1343,7 +1410,7 @@ a {
   }
 
   .conclusion-kicker {
-    font-size: 0.54rem;
+    font-size: 0.58rem;
   }
 
   .conclusion-title {

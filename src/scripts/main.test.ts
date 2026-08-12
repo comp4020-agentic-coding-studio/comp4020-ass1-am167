@@ -13,7 +13,7 @@ vi.mock("./globe", () => ({ createGlobe: createGlobeMock }));
 vi.mock("./starfield", () => ({ initStarfield: initStarfieldMock }));
 
 import { initTimeline } from "./main";
-import { TIMELINE } from "./timeline";
+import { MILESTONE_ERA_IDS, TIMELINE } from "./timeline";
 
 const VIEWPORT_HEIGHT = 1_000;
 const TIMELINE_HEIGHT = 5_000;
@@ -69,6 +69,14 @@ function installFixture(): TimelineFixture {
           </div>
           <span data-globe-label></span>
           <p data-era-announcer role="status" aria-live="polite"></p>
+          <span class="meter-ticks">${TIMELINE.filter((era) =>
+            MILESTONE_ERA_IDS.has(era.id),
+          )
+            .map(
+              (era) =>
+                `<button type="button" class="meter-tick" data-era-jump="${era.id}"></button>`,
+            )
+            .join("")}</span>
         </section>
       </body>
     </html>`);
@@ -314,6 +322,42 @@ describe("interactive timeline", () => {
     fixture.setRawProgress(0.999);
     fixture.flushFrame();
     expect(announcer?.textContent).toBe(announced);
+  });
+
+  it("jumps to the chosen milestone, including across the present pause", () => {
+    const fixture = installFixture();
+    initTimeline();
+
+    const activeId = (): string | undefined =>
+      globeSetStateMock.mock.calls.at(-1)?.[0].active.id;
+
+    const jumpTo = (id: string): void => {
+      const button = fixture.document.querySelector<HTMLElement>(
+        `[data-era-jump="${id}"]`,
+      );
+      if (!button) throw new Error(`No jump control for ${id}`);
+      button.dispatchEvent(
+        new fixture.document.defaultView!.MouseEvent("click", { bubbles: true }),
+      );
+      fixture.flushFrame();
+    };
+
+    // The present sits behind a scroll pause, so its scroll position is not a
+    // straight multiple of its story fraction — jumping has to invert that.
+    jumpTo("present");
+    expect(activeId()).toBe("present");
+
+    // Backwards, to an era before the pause.
+    jumpTo("dinosaurs");
+    expect(activeId()).toBe("dinosaurs");
+
+    // Forwards, past the pause, to the far end of the journey.
+    jumpTo(TIMELINE[TIMELINE.length - 1].id);
+    expect(activeId()).toBe(TIMELINE[TIMELINE.length - 1].id);
+
+    // And back to the very beginning.
+    jumpTo(TIMELINE[0].id);
+    expect(activeId()).toBe(TIMELINE[0].id);
   });
 
   it("leaves incomplete markup untouched instead of throwing", () => {
