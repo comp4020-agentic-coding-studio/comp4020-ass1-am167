@@ -348,6 +348,8 @@ a {
 
 .era-copy {
   --copy-transition: 0;
+  --copy-out: 1;
+  --copy-in: 0;
   --copy-from-y: 0;
   --copy-to-y: 0.55rem;
 
@@ -367,13 +369,15 @@ a {
   will-change: opacity, transform;
 }
 
+/* Sequential, not complementary: the outgoing panel finishes fading before the
+   incoming one starts, so two paragraphs are never both readable. */
 .era-panel[data-era-layer="from"] {
-  opacity: calc(1 - var(--copy-transition));
+  opacity: var(--copy-out);
   transform: translate3d(0, var(--copy-from-y), 0);
 }
 
 .era-panel[data-era-layer="to"] {
-  opacity: var(--copy-transition);
+  opacity: var(--copy-in);
   transform: translate3d(0, var(--copy-to-y), 0);
 }
 
@@ -852,6 +856,8 @@ a {
 
 .short-date-stack {
   --copy-transition: 0;
+  --copy-out: 1;
+  --copy-in: 0;
   --copy-from-y: 0;
   --copy-to-y: 0.25rem;
 
@@ -865,12 +871,12 @@ a {
 }
 
 .short-date-stack > [data-era-layer="from"] {
-  opacity: calc(1 - var(--copy-transition));
+  opacity: var(--copy-out);
   transform: translateY(var(--copy-from-y));
 }
 
 .short-date-stack > [data-era-layer="to"] {
-  opacity: var(--copy-transition);
+  opacity: var(--copy-in);
   transform: translateY(var(--copy-to-y));
 }
 
