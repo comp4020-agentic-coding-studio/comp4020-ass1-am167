@@ -994,8 +994,19 @@ a {
   line-height: 1.65;
 }
 
+/* Enhanced, the scrolling stage is the visual experience — but the full
+   chronology stays in the accessibility tree rather than being removed, so a
+   screen reader is not limited to whichever single era happens to be on
+   screen. Visually hidden, not display:none. */
 .timeline[data-enhanced="true"] .timeline-fallback {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
 }
 
 .conclusion {

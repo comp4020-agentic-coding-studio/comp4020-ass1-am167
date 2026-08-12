@@ -1321,6 +1321,21 @@ function smoothstep(value: number): number {
   return value * value * (3 - 2 * value);
 }
 
+// The photographic day, ocean, cloud and night-light maps are the only assets
+// the page cannot generate in the browser, and only one era ever shows them.
+// Fetching them at load makes the deep past pay for a texture set it never
+// displays, so the request waits until the present is this far ahead — close
+// enough that the maps are decoded before the planet needs them, far enough
+// that a visitor who never reaches the present never pays for them at all.
+const PRESENT_TEXTURE_LEAD = 0.08;
+
+const PRESENT_TEXTURE_SCROLL =
+  TIMELINE.find((era) => era.visual.mode === "present")?.scroll ?? 0;
+
+export function shouldLoadPresentTextures(progress: number): boolean {
+  return clampFraction(progress) >= PRESENT_TEXTURE_SCROLL - PRESENT_TEXTURE_LEAD;
+}
+
 export function stateForScrollFraction(fraction: number): TimelineState {
   const progress = clampFraction(fraction);
   const lastIndex = TIMELINE.length - 1;

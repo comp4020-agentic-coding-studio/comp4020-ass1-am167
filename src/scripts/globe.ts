@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
 import type { EraVisual, TimelineEra, TimelineState } from "./timeline";
-import { TIMELINE } from "./timeline";
+import { shouldLoadPresentTextures, TIMELINE } from "./timeline";
 
 export interface GlobeController {
   setState: (state: TimelineState) => void;
@@ -602,13 +602,69 @@ export function createGlobe(
   };
 
   const textureLoader = new THREE.TextureLoader();
-  const referenceTextures: PlanetTextures = {
-    surface: configureTexture(textureLoader.load(EARTH_DAY_URL), true),
-    ocean: configureTexture(textureLoader.load(EARTH_SPECULAR_URL), false),
-    clouds: configureTexture(textureLoader.load(EARTH_CLOUDS_URL), true),
+
+  // A 1x1 stand-in so the shaders always have a bound sampler. Every uniform
+  // that reads a photographic map is multiplied by a strength that is zero
+  // outside the present, so the placeholder is never actually visible.
+  const blankCanvas = document.createElement("canvas");
+  blankCanvas.width = 1;
+  blankCanvas.height = 1;
+  const blankTexture = configureTexture(
+    new THREE.CanvasTexture(blankCanvas),
+    true,
+  );
+
+  let referenceTextures: PlanetTextures = {
+    surface: blankTexture,
+    ocean: blankTexture,
+    clouds: blankTexture,
     owned: false,
   };
-  const earthLights = configureTexture(textureLoader.load(EARTH_LIGHTS_URL), true);
+  let earthLights: THREE.Texture = blankTexture;
+  let referenceTexturesRequested = false;
+  let referenceTexturesReady = false;
+  const retiredTextures: PlanetTextures[] = [];
+
+  const presentEraIds = new Set(
+    TIMELINE.filter((era) => era.visual.mode === "present").map((era) => era.id),
+  );
+
+  // Deferred until the present is in reach — see shouldLoadPresentTextures.
+  // Until the maps decode, the present falls back to the same procedural
+  // renderer every other era uses, so a slow connection sees a plausible
+  // Earth rather than an unlit sphere.
+  const loadReferenceTextures = (): void => {
+    if (referenceTexturesRequested) return;
+    referenceTexturesRequested = true;
+
+    let pending = 3;
+    const settle = (): void => {
+      pending -= 1;
+      if (pending > 0) return;
+      referenceTexturesReady = true;
+      for (const id of presentEraIds) {
+        const standIn = textures.get(id);
+        // Retire rather than dispose: the shader uniforms still point at the
+        // stand-in until the next setState repoints them.
+        if (standIn?.owned) retiredTextures.push(standIn);
+        textures.delete(id);
+      }
+    };
+
+    referenceTextures = {
+      surface: configureTexture(textureLoader.load(EARTH_DAY_URL, settle), true),
+      ocean: configureTexture(
+        textureLoader.load(EARTH_SPECULAR_URL, settle),
+        false,
+      ),
+      clouds: configureTexture(
+        textureLoader.load(EARTH_CLOUDS_URL, settle),
+        true,
+      ),
+      owned: false,
+    };
+    earthLights = configureTexture(textureLoader.load(EARTH_LIGHTS_URL), true);
+  };
 
   const texturesFor = (era: TimelineEra): PlanetTextures => {
     const cached = textures.get(era.id);
@@ -618,8 +674,10 @@ export function createGlobe(
       return cached;
     }
 
+    if (era.visual.mode === "present") loadReferenceTextures();
+
     const generated =
-      era.visual.mode === "present"
+      era.visual.mode === "present" && referenceTexturesReady
         ? referenceTextures
         : (() => {
             const index = eraIndexes.get(era.id) ?? 0;
@@ -903,6 +961,10 @@ export function createGlobe(
 
   return {
     setState(state) {
+      // Start the photographic maps downloading a little before the present
+      // arrives, so they are decoded by the time the blue marble is on screen.
+      if (shouldLoadPresentTextures(state.progress)) loadReferenceTextures();
+
       const fromTextures = texturesFor(state.from);
       const toTextures = texturesFor(state.to);
       const atmosphereFrom = colourFor(state.from.visual.atmosphere);
@@ -928,6 +990,7 @@ export function createGlobe(
       surfaceMaterial.uniforms.oceanTo.value = toTextures.ocean;
       cloudMaterial.uniforms.mapFrom.value = fromTextures.clouds;
       cloudMaterial.uniforms.mapTo.value = toTextures.clouds;
+      surfaceMaterial.uniforms.nightMap.value = earthLights;
       surfaceMaterial.uniforms.textureMix.value = state.mix;
       cloudMaterial.uniforms.textureMix.value = state.mix;
       atmosphereMaterial.uniforms.textureMix.value = state.mix;
@@ -949,6 +1012,14 @@ export function createGlobe(
         material.uniforms.atmosphereTo.value.copy(atmosphereTo);
       }
 
+      // Safe now that the uniforms above point at the photographic maps.
+      while (retiredTextures.length > 0) {
+        const retired = retiredTextures.pop();
+        retired?.surface.dispose();
+        retired?.ocean.dispose();
+        retired?.clouds.dispose();
+      }
+
       trimTextureCache(new Set([state.from.id, state.to.id]));
     },
     destroy() {
@@ -966,10 +1037,13 @@ export function createGlobe(
           textureSet.clouds.dispose();
         }
       }
-      referenceTextures.surface.dispose();
-      referenceTextures.ocean.dispose();
-      referenceTextures.clouds.dispose();
-      earthLights.dispose();
+      if (referenceTexturesRequested) {
+        referenceTextures.surface.dispose();
+        referenceTextures.ocean.dispose();
+        referenceTextures.clouds.dispose();
+        earthLights.dispose();
+      }
+      blankTexture.dispose();
       renderer.dispose();
     },
   };

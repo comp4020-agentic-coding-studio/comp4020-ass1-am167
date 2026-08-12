@@ -17,13 +17,27 @@ import { TIMELINE } from "./timeline";
 
 const VIEWPORT_HEIGHT = 1_000;
 const TIMELINE_HEIGHT = 5_000;
-const FINAL_DWELL_HEIGHT = VIEWPORT_HEIGHT * 1.1;
-const NARRATIVE_DISTANCE =
-  TIMELINE_HEIGHT - VIEWPORT_HEIGHT - FINAL_DWELL_HEIGHT;
+const FINAL_DWELL_VIEWPORTS = 1.1;
+// The hero sits above the timeline, so the timeline starts one viewport down.
+const TIMELINE_DOCUMENT_TOP = VIEWPORT_HEIGHT;
+
+function narrativeDistanceFor(
+  viewportHeight: number,
+  timelineHeight: number,
+): number {
+  const scrollDistance = Math.max(1, timelineHeight - viewportHeight);
+  return Math.max(
+    1,
+    scrollDistance - viewportHeight * FINAL_DWELL_VIEWPORTS,
+  );
+}
 
 interface TimelineFixture {
   document: Document;
   flushFrame: () => void;
+  narrativeProgress: () => number;
+  resizeViewport: (viewportHeight: number, timelineHeight: number) => void;
+  scrollPosition: () => number;
   setRawProgress: (progress: number) => void;
   timeline: HTMLElement;
 }
@@ -54,6 +68,7 @@ function installFixture(): TimelineFixture {
             <span data-short-date data-era-layer="from"></span>
           </div>
           <span data-globe-label></span>
+          <p data-era-announcer role="status" aria-live="polite"></p>
         </section>
       </body>
     </html>`);
@@ -61,30 +76,48 @@ function installFixture(): TimelineFixture {
   const timeline = document.querySelector<HTMLElement>("[data-timeline]");
   if (!timeline) throw new Error("Timeline fixture is incomplete");
 
-  let timelineTop = 0;
+  let viewportHeight = VIEWPORT_HEIGHT;
+  let timelineHeight = TIMELINE_HEIGHT;
+  let scrollY = 0;
   let nextFrameId = 1;
   const frames = new Map<number, FrameRequestCallback>();
 
-  Object.defineProperty(window, "innerHeight", {
+  const defineViewport = (): void => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: viewportHeight,
+    });
+    Object.defineProperty(timeline, "offsetHeight", {
+      configurable: true,
+      value: timelineHeight,
+    });
+  };
+  defineViewport();
+
+  Object.defineProperty(window, "scrollY", {
     configurable: true,
-    value: VIEWPORT_HEIGHT,
+    get: () => scrollY,
   });
-  Object.defineProperty(timeline, "offsetHeight", {
-    configurable: true,
-    value: TIMELINE_HEIGHT,
-  });
-  timeline.getBoundingClientRect = () =>
-    ({
-      bottom: timelineTop + TIMELINE_HEIGHT,
-      height: TIMELINE_HEIGHT,
+  window.scrollTo = ((x: number, y: number): void => {
+    scrollY = typeof x === "object" ? ((x as { top?: number }).top ?? 0) : y;
+  }) as typeof window.scrollTo;
+
+  // Layout the fixture models: the timeline pins once it reaches the top of
+  // the viewport, so its client rect top is its document offset minus scroll.
+  timeline.getBoundingClientRect = () => {
+    const top = TIMELINE_DOCUMENT_TOP - scrollY;
+    return {
+      bottom: top + timelineHeight,
+      height: timelineHeight,
       left: 0,
       right: 0,
-      top: timelineTop,
+      top,
       width: 0,
       x: 0,
-      y: timelineTop,
+      y: top,
       toJSON: () => ({}),
-    }) as DOMRect;
+    } as DOMRect;
+  };
   window.requestAnimationFrame = (callback: FrameRequestCallback): number => {
     const id = nextFrameId;
     nextFrameId += 1;
@@ -98,9 +131,26 @@ function installFixture(): TimelineFixture {
   return {
     document,
     timeline,
+    narrativeProgress() {
+      return (
+        (scrollY - TIMELINE_DOCUMENT_TOP) /
+        narrativeDistanceFor(viewportHeight, timelineHeight)
+      );
+    },
+    scrollPosition() {
+      return scrollY;
+    },
     setRawProgress(progress) {
-      timelineTop = -progress * NARRATIVE_DISTANCE;
+      scrollY =
+        TIMELINE_DOCUMENT_TOP +
+        progress * narrativeDistanceFor(viewportHeight, timelineHeight);
       document.dispatchEvent(new window.Event("scroll"));
+    },
+    resizeViewport(nextViewportHeight, nextTimelineHeight) {
+      viewportHeight = nextViewportHeight;
+      timelineHeight = nextTimelineHeight;
+      defineViewport();
+      window.dispatchEvent(new window.Event("resize"));
     },
     flushFrame() {
       const queued = [...frames.values()];
@@ -194,6 +244,76 @@ describe("interactive timeline", () => {
     expect(globeSetStateMock.mock.calls.at(-1)?.[0].active.id).toBe(
       "after-earth",
     );
+  });
+
+  it("keeps the visitor at the same moment in the story across a resize", () => {
+    const fixture = installFixture();
+    initTimeline();
+
+    const present = TIMELINE.find((era) => era.id === "present");
+    if (!present) throw new Error("Timeline requires a present era");
+    const heldProgress = present.scroll * 0.96 + 0.02;
+
+    fixture.setRawProgress(heldProgress);
+    fixture.flushFrame();
+
+    const titleOf = (): string | null | undefined =>
+      fixture.document.querySelector(
+        '[data-era-panel][data-era-layer="from"] [data-era-title]',
+      )?.textContent;
+    expect(titleOf()).toBe(present.title);
+
+    // A phone rotating to landscape, or a desktop window being dragged
+    // narrower, changes both the viewport and the timeline's own height.
+    fixture.resizeViewport(600, 9_000);
+    fixture.flushFrame();
+
+    // Scroll positions are whole pixels, so the restored progress lands within
+    // half a pixel of where it was — against 0.36 of drift without the anchor.
+    expect(fixture.narrativeProgress()).toBeCloseTo(heldProgress, 3);
+    expect(titleOf()).toBe(present.title);
+    expect(fixture.timeline.classList.contains("is-present")).toBe(true);
+  });
+
+  it("does not drag the reader into the timeline when they resize elsewhere", () => {
+    const fixture = installFixture();
+    initTimeline();
+
+    // Still up in the hero, above the timeline entirely.
+    fixture.setRawProgress(-0.5);
+    fixture.flushFrame();
+    const heroScroll = fixture.scrollPosition();
+
+    fixture.resizeViewport(600, 9_000);
+    fixture.flushFrame();
+
+    expect(fixture.scrollPosition()).toBe(heroScroll);
+  });
+
+  it("announces each era change once for assistive technology", () => {
+    const fixture = installFixture();
+    initTimeline();
+
+    const announcer = fixture.document.querySelector<HTMLElement>(
+      "[data-era-announcer]",
+    );
+    expect(announcer?.getAttribute("aria-live")).toBe("polite");
+    expect(announcer?.textContent).toContain(TIMELINE[0].title);
+
+    fixture.setRawProgress(1);
+    fixture.flushFrame();
+
+    const finalEra = TIMELINE.at(-1);
+    if (!finalEra) throw new Error("Timeline requires a final era");
+    expect(announcer?.textContent).toContain(finalEra.title);
+    expect(announcer?.textContent).toContain(finalEra.date);
+    expect(announcer?.textContent).toContain(String(TIMELINE.length));
+
+    // Scrolling within one era must not re-announce it.
+    const announced = announcer?.textContent;
+    fixture.setRawProgress(0.999);
+    fixture.flushFrame();
+    expect(announcer?.textContent).toBe(announced);
   });
 
   it("leaves incomplete markup untouched instead of throwing", () => {
