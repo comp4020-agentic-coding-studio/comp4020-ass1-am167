@@ -9,6 +9,22 @@ const PRESENT_PAUSE_START = PRESENT_SCROLL * (1 - PRESENT_PAUSE_SPAN);
 const PRESENT_PAUSE_END = PRESENT_PAUSE_START + PRESENT_PAUSE_SPAN;
 const FINAL_ERA_DWELL_VIEWPORTS = 1.1;
 
+// The globe crossfades across a whole segment, but the text must not: two
+// paragraphs of body copy stacked at half opacity are unreadable, and a wide
+// window means a reader who stops mid-transition sees double. The outgoing
+// panel finishes fading exactly where the incoming one starts — which is also
+// mix 0.5, where `active` flips, so the visible swap matches the announced one.
+// Kept tight on purpose: the wider the swap, the longer the band of scroll
+// where neither panel is at full strength. At this width that band is about
+// ten pixels, against roughly 450 per era.
+const COPY_SWAP_START = 0.44;
+const COPY_SWAP_MID = 0.5;
+const COPY_SWAP_END = 0.56;
+
+function clampUnit(value: number): number {
+  return Math.min(1, Math.max(0, value));
+}
+
 interface PresentPauseState {
   progress: number;
   storyProgress: number;
@@ -246,8 +262,17 @@ export function initTimeline(): void {
       targetShortDate.textContent = to.shortDate;
     }
 
-    const copyTransition = Math.min(1, Math.max(0, (mix - 0.2) / 0.6));
+    const copyTransition = clampUnit(
+      (mix - COPY_SWAP_START) / (COPY_SWAP_END - COPY_SWAP_START),
+    );
+    const copyOut =
+      1 - clampUnit((mix - COPY_SWAP_START) / (COPY_SWAP_MID - COPY_SWAP_START));
+    const copyIn = clampUnit(
+      (mix - COPY_SWAP_MID) / (COPY_SWAP_END - COPY_SWAP_MID),
+    );
     copy.style.setProperty("--copy-transition", String(copyTransition));
+    copy.style.setProperty("--copy-out", copyOut.toFixed(4));
+    copy.style.setProperty("--copy-in", copyIn.toFixed(4));
     copy.style.setProperty(
       "--copy-from-y",
       `${(-0.55 * copyTransition).toFixed(3)}rem`,
@@ -260,6 +285,8 @@ export function initTimeline(): void {
       "--copy-transition",
       String(copyTransition),
     );
+    shortDateStack.style.setProperty("--copy-out", copyOut.toFixed(4));
+    shortDateStack.style.setProperty("--copy-in", copyIn.toFixed(4));
     shortDateStack.style.setProperty(
       "--copy-from-y",
       `${(-0.25 * copyTransition).toFixed(3)}rem`,

@@ -360,6 +360,39 @@ describe("interactive timeline", () => {
     expect(activeId()).toBe(TIMELINE[0].id);
   });
 
+  it("never leaves two eras of copy legible at the same time", () => {
+    const fixture = installFixture();
+    initTimeline();
+
+    const copy = fixture.document.querySelector<HTMLElement>("[data-era-copy]");
+    if (!copy) throw new Error("Timeline fixture is missing the copy layer");
+
+    let worstOverlap = 0;
+    let brightestOut = 0;
+    let brightestIn = 0;
+
+    // Sweep the whole journey rather than a single segment: the pause at the
+    // present warps the mapping, so the invariant has to hold everywhere.
+    const samples = 240;
+    for (let step = 0; step <= samples; step += 1) {
+      fixture.setRawProgress(step / samples);
+      fixture.flushFrame();
+      const out = Number(copy.style.getPropertyValue("--copy-out"));
+      const into = Number(copy.style.getPropertyValue("--copy-in"));
+      worstOverlap = Math.max(worstOverlap, Math.min(out, into));
+      brightestOut = Math.max(brightestOut, out);
+      brightestIn = Math.max(brightestIn, into);
+    }
+
+    // Two paragraphs of body copy stacked at half opacity is the bug: the
+    // outgoing panel has to finish fading before the incoming one starts.
+    expect(worstOverlap).toBeLessThan(0.05);
+
+    // And not by hiding both — each layer still reaches full strength.
+    expect(brightestOut).toBeCloseTo(1, 2);
+    expect(brightestIn).toBeCloseTo(1, 2);
+  });
+
   it("leaves incomplete markup untouched instead of throwing", () => {
     const dom = new JSDOM("<!doctype html><section data-timeline></section>");
     vi.stubGlobal("window", dom.window);
