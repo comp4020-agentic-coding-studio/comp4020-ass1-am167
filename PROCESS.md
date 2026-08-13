@@ -2,10 +2,7 @@
 
 ## What I built
 
-Earth Through Time is a scroll-driven explainer. One WebGL globe carries 62
-researched moments from the planet's formation to the white dwarf that outlives
-it, with "now" placed at 58% of the journey so the future gets real space. The
-scroll stops at the present and holds there before letting you continue.
+Earth Through Time is intended to be an interactive journery though the history and the future of the Earth. As users scroll, the globe changes across 62 meaningful moments, from the planet's formation to its distant future as a dead rock. All moments are grounded in real scientific research.
 
 ## The moments that mattered
 
