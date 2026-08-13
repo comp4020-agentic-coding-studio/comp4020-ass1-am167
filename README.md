@@ -35,11 +35,14 @@ pnpm dlx linkinator ./dist --silent   # reproduce CI's links check before you pu
 
 ## Performance checks
 
-`pnpm test:performance` builds the site and runs the regression suite in
-`scripts/performance.test.ts`. It checks the shipped payload, compressed
-JavaScript, request shape, asset sizes, and the CPU cost of the scroll-to-era
-mapping. The budgets are deliberately checked against `dist/`, so they measure
-what will be deployed rather than source-file size.
+`pnpm test:performance:budgets` is the fast regression gate for shipped
+payload, compressed JavaScript, request shape, asset sizes, and the CPU cost of
+the scroll-to-era mapping. `pnpm test:performance` adds the deep real-Chrome
+suite: constrained CPU/network profiles, full-timeline long-task and frame
+sampling, deferred-asset checks, render-loop activity, and a GPU saturation
+probe. It writes an executive report and raw samples to the ignored
+`performance-results/` directory. The deep suite is intentionally manual and
+machine-specific; `CLAUDE.md` documents how to run and interpret it.
 
 `mise` is the course's recommended runtime manager. If you use another manager
 or the official installers, that is fine: provide the Node and pnpm versions in

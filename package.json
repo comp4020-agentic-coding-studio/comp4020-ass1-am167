@@ -8,7 +8,9 @@
     "build": "astro build",
     "preview": "astro preview",
     "typecheck": "astro check",
-    "test:performance": "pnpm build && vitest run scripts/performance.test.ts",
+    "test:performance:budgets": "pnpm build && vitest run scripts/performance.test.ts scripts/performance/report.test.ts src/scripts/performance-profiler.test.ts",
+    "test:performance:browser": "pnpm build && node scripts/performance/run.ts",
+    "test:performance": "pnpm test:performance:budgets && node scripts/performance/run.ts",
     "check": "pnpm typecheck && pnpm build && oxlint --ignore-path .gitignore && stylelint \"**/*.css\" --ignore-path .gitignore --allow-empty-input && vitest run",
     "check:evidence": "node scripts/check-evidence.ts",
     "test": "pnpm build && vitest run"
@@ -21,6 +23,7 @@
     "astro": "^7.1.6",
     "jsdom": "^29.1.1",
     "oxlint": "^1.75.0",
+    "playwright-core": "1.55.0",
     "stylelint": "^17.14.1",
     "stylelint-config-standard": "^40.0.0",
     "typescript": "^6.0.3",
