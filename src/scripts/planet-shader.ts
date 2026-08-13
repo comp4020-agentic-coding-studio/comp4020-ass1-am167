@@ -575,9 +575,24 @@ export const MOON_FRAGMENT_SHADER = /* glsl */ `
     colour += albedo * vec3(0.10, 0.13, 0.20) * 0.55;
 
     // Heated by the expanding Sun, on the same threshold the CSS version used.
-    float heatGlow = clamp((moonHeat - 0.58) * 1.9, 0.0, 0.85);
-    vec3 scorched = mix(vec3(0.85, 0.19, 0.04), vec3(1.0, 0.60, 0.18), dust);
-    colour = mix(colour, scorched * (0.32 + day * 0.95), heatGlow);
+    //
+    // Tinting the lit surface orange is not enough, for two reasons that both
+    // bite here. It pushes the channels past 1.0, where a filmic tone curve
+    // desaturates them straight back to cream; and by this point the Moon is
+    // seen against the red giant's own disc, so a warm surface has nothing to
+    // contrast with. Hot rock has to be dark rock with light coming out of it.
+    float heatGlow = clamp((moonHeat - 0.58) * 1.9, 0.0, 1.0);
+    vec3 scorchedRock = mix(vec3(0.15, 0.09, 0.07), vec3(0.28, 0.17, 0.13), dust);
+    colour = mix(colour, scorchedRock * (0.30 + day * 0.85), heatGlow);
+
+    // Incandescence, pooling in the maria — they are the low basalt plains, so
+    // they are where melt would collect — and threading along the basin rims.
+    // Added rather than mixed, and independent of the daylight term, so it
+    // survives on to the night side: that is the difference between a lit
+    // Moon and a hot one.
+    vec3 ember = mix(vec3(0.95, 0.19, 0.03), vec3(1.0, 0.60, 0.15), dust);
+    float embers = heatGlow * (0.14 + maria * 0.52 + pow(basins, 2.0) * 0.45);
+    colour += ember * embers * 0.95;
 
     gl_FragColor = vec4(colour, moonOpacity);
     #include <tonemapping_fragment>
