@@ -1,13 +1,20 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  hasVisibleMoon,
   MILESTONE_ERA_IDS,
   moonHeatFor,
+  PLANET_MODES,
   shouldLoadPresentTextures,
   stateForScrollFraction,
   TIMELINE,
   timeForScrollFraction,
 } from "./timeline";
+import {
+  mixPlanetShading,
+  PLANET_SHADING_KEYS,
+  planetShadingFor,
+} from "./planet-shading";
 
 describe("Earth timeline mapping", () => {
   it("maps the two ends of the scroll track to Earth's formation and end", () => {
@@ -220,5 +227,100 @@ describe("Earth timeline mapping", () => {
     expect(stateForScrollFraction(-10).active.id).toBe("formation");
     expect(stateForScrollFraction(10).active.id).toBe("after-earth");
     expect(stateForScrollFraction(Number.NaN).active.id).toBe("formation");
+  });
+});
+
+// The globe shades itself from these numbers rather than from the mode name:
+// the fragment shader has no branches per era, it just reads a set of scalars
+// and blends between the two an era transition sits between. That makes the
+// contract worth stating here — a mode with no entry, or a value outside the
+// range the shader assumes, is a silently wrong-looking planet rather than a
+// crash, which is exactly the failure a test should catch.
+describe("planet shading parameters", () => {
+  it("gives every planet mode an explicit set of shading parameters", () => {
+    for (const mode of PLANET_MODES) {
+      const shading = planetShadingFor({
+        ...TIMELINE[0].visual,
+        mode,
+      });
+
+      for (const key of PLANET_SHADING_KEYS) {
+        expect(shading[key], `${mode}.${key}`).toBeTypeOf("number");
+        expect(Number.isFinite(shading[key]), `${mode}.${key}`).toBe(true);
+      }
+    }
+  });
+
+  it("keeps every era's shading parameters inside the shader's 0-1 range", () => {
+    for (const era of TIMELINE) {
+      const shading = planetShadingFor(era.visual);
+      for (const key of PLANET_SHADING_KEYS) {
+        expect(shading[key], `${era.id}.${key}`).toBeGreaterThanOrEqual(0);
+        expect(shading[key], `${era.id}.${key}`).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  it("blends any two eras without leaving that range", () => {
+    // Scroll lands the globe between two arbitrary eras every frame, so the
+    // blend has to stay in range for every pair, not just for neighbours.
+    for (const from of TIMELINE) {
+      for (const to of TIMELINE) {
+        for (const mix of [0, 0.13, 0.5, 0.87, 1]) {
+          const blended = mixPlanetShading(
+            planetShadingFor(from.visual),
+            planetShadingFor(to.visual),
+            mix,
+          );
+          for (const key of PLANET_SHADING_KEYS) {
+            const label = `${from.id}->${to.id}@${mix}.${key}`;
+            expect(blended[key], label).toBeGreaterThanOrEqual(0);
+            expect(blended[key], label).toBeLessThanOrEqual(1);
+          }
+        }
+      }
+    }
+  });
+
+  // The renderer draws the Moon and the copy layer names it in the globe's
+  // accessible description, so both have to agree about when it is there.
+  // They used to hold separate copies of this rule.
+  it("shows the Moon only between the impact that made it and the end", () => {
+    const visible = TIMELINE.filter(hasVisibleMoon);
+    const hidden = TIMELINE.filter((era) => !hasVisibleMoon(era));
+
+    expect(visible.length).toBeGreaterThan(0);
+    expect(hidden.map((era) => era.id)).toContain("formation");
+    expect(hidden.map((era) => era.id)).toContain("after-earth");
+    // Nothing between the Moon-forming impact and the white dwarf may blink
+    // the Moon out and back again.
+    const firstVisible = TIMELINE.findIndex(hasVisibleMoon);
+    const lastVisible = TIMELINE.length - 1 - [...TIMELINE].reverse().findIndex(hasVisibleMoon);
+    for (let index = firstVisible; index <= lastVisible; index += 1) {
+      expect(hasVisibleMoon(TIMELINE[index]), TIMELINE[index].id).toBe(true);
+    }
+  });
+
+  it("spends the photographic maps and city lights only on the present", () => {
+    for (const era of TIMELINE) {
+      const shading = planetShadingFor(era.visual);
+      const present = era.visual.mode === "present";
+      expect(shading.referenceMap, era.id).toBe(present ? 1 : 0);
+      expect(shading.nightLights, era.id).toBe(present ? 1 : 0);
+    }
+  });
+
+  it("separates a molten world from a living one", () => {
+    const molten = planetShadingFor(
+      TIMELINE.find((era) => era.id === "formation")!.visual,
+    );
+    const living = planetShadingFor(
+      TIMELINE.find((era) => era.id === "present")!.visual,
+    );
+
+    expect(molten.molten).toBe(1);
+    expect(molten.vegetation).toBe(0);
+    expect(living.molten).toBe(0);
+    expect(living.vegetation).toBe(1);
   });
 });

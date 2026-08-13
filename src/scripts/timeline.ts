@@ -1,17 +1,22 @@
-export type PlanetMode =
-  | "molten"
-  | "archean"
-  | "oxygen"
-  | "snowball"
-  | "paleozoic"
-  | "mesozoic"
-  | "impact"
-  | "ice-age"
-  | "temperate"
-  | "present"
-  | "dry"
-  | "red-giant"
-  | "remnant";
+// Listed rather than declared as a bare union so the renderer can prove it
+// handles every mode at run time, not only at compile time.
+export const PLANET_MODES = [
+  "molten",
+  "archean",
+  "oxygen",
+  "snowball",
+  "paleozoic",
+  "mesozoic",
+  "impact",
+  "ice-age",
+  "temperate",
+  "present",
+  "dry",
+  "red-giant",
+  "remnant",
+] as const;
+
+export type PlanetMode = (typeof PLANET_MODES)[number];
 
 export interface EraVisual {
   mode: PlanetMode;
@@ -1393,6 +1398,17 @@ export function timeForScrollFraction(fraction: number): number {
  * Scaled so +5.4 BY (core-hydrogen-ends, sun ≈ 0.45) is a clear visible start
  * above the CSS glow threshold (~0.58).
  */
+/**
+ * The Moon exists from the impact that formed it until Earth itself is gone.
+ *
+ * Lives here rather than beside either of its callers because both the
+ * renderer and the globe's accessible description depend on it, and two
+ * copies of the same rule can disagree.
+ */
+export function hasVisibleMoon(era: TimelineEra): boolean {
+  return era.millionYearsFromNow >= -4510 && era.id !== "after-earth";
+}
+
 export function moonHeatFor(era: TimelineEra): number {
   if (era.millionYearsFromNow < 0) {
     return era.visual.heat;

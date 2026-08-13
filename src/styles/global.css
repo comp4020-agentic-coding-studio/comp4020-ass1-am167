@@ -17,7 +17,6 @@
   --sun-size: 0;
   --earth-opacity: 1;
   --reflection-progress: 0;
-  --moon-opacity: 0;
   --moon-heat: 1;
 }
 
@@ -556,6 +555,9 @@ a {
   animation: present-breathe 5s ease-in-out infinite;
 }
 
+/* A wide, very soft bloom only. The tight ring that used to live here is now
+   the renderer's job: it is lit from the same direction as the planet, so it
+   fades into the night limb instead of tracing the whole silhouette. */
 .earth-wrap::before {
   position: absolute;
   z-index: 0;
@@ -563,14 +565,13 @@ a {
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    transparent 54%,
-    color-mix(in srgb, var(--era-atmosphere) 22%, transparent) 68%,
-    transparent 74%
+    color-mix(in srgb, var(--era-atmosphere) 13%, transparent) 0 46%,
+    transparent 72%
   );
   content: "";
-  filter: blur(1.35rem);
-  opacity: 0.72;
-  transform: scale(1.08);
+  filter: blur(2.6rem);
+  opacity: 0.5;
+  transform: scale(1.12);
 }
 
 .earth-canvas,
@@ -583,69 +584,60 @@ a {
   height: 100%;
 }
 
+/* Reaches past the wrap so the Moon, which hangs off the right edge, is inside
+   the scene rather than beside it. The renderer pulls the camera back by the
+   same proportion, so the globe keeps the size it had when this was inset: 0.
+   Transparent everywhere the planet is not, and never a click target.
+
+   No cast shadow: there is nothing under the planet to catch one, and the dark
+   offset copy it produced read as a seam along the lower limb. */
 .earth-canvas {
-  filter:
-    drop-shadow(
-      0 0 1.15rem color-mix(in srgb, var(--era-atmosphere) 25%, transparent)
-    )
-    drop-shadow(0 1.5rem 2.8rem rgb(0 0 0 / 46%));
+  inset: -16%;
+  width: 132%;
+  height: 132%;
+  filter: drop-shadow(
+    0 0 1.6rem color-mix(in srgb, var(--era-atmosphere) 18%, transparent)
+  );
+  pointer-events: none;
 }
 
+/* The Moon is drawn by the renderer now, in the same scene and under the same
+   light as the planet, because a stack of gradients can imply a light source
+   but cannot agree with one. This element paints nothing: it stays purely to
+   hold the Moon's place in the composition, so the media queries below keep
+   deciding where it sits and how big it is, and the renderer measures it
+   rather than duplicating those numbers in JavaScript.
+
+   No transform here — the presence animation moved into the shader, and a
+   transform would move the box the renderer is measuring. */
 .moon {
   position: absolute;
-  z-index: 4;
+  z-index: 1;
   top: 17%;
   right: -10%;
   width: 17%;
   aspect-ratio: 1;
-  isolation: isolate;
-  border: 1px solid rgb(239 235 221 / 19%);
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 31% 28%, rgb(243 239 222 / 42%) 0 2%, transparent 3%),
-    radial-gradient(circle at 68% 31%, rgb(37 34 31 / 58%) 0 5%, rgb(163 157 145 / 24%) 6% 8%, transparent 9%),
-    radial-gradient(circle at 38% 62%, rgb(49 45 41 / 58%) 0 8%, rgb(188 181 166 / 23%) 9% 11%, transparent 12%),
-    radial-gradient(circle at 71% 70%, rgb(50 46 42 / 48%) 0 3%, rgb(197 190 175 / 19%) 4% 6%, transparent 7%),
-    radial-gradient(circle at 28% 42%, rgb(74 69 63 / 48%) 0 3%, transparent 4%),
-    radial-gradient(circle at 35% 31%, #e6e1d4 0, #aaa397 36%, #736d65 68%, #282522 100%);
-  box-shadow:
-    inset -0.65rem -0.25rem 0.9rem rgb(0 0 0 / 64%),
-    inset 0.16rem 0.1rem 0.25rem rgb(255 255 240 / 16%),
-    0 0.65rem 1.2rem rgb(0 0 0 / 45%);
-  opacity: var(--moon-opacity);
-  transform: translate3d(0, calc((1 - var(--moon-opacity)) * 0.9rem), 0)
-    scale(calc(0.72 + var(--moon-opacity) * 0.28));
-  transition: opacity 90ms linear;
-}
-
-.moon::before,
-.moon::after {
-  position: absolute;
-  border-radius: 50%;
-  content: "";
   pointer-events: none;
 }
 
-.moon::before {
-  z-index: 1;
-  inset: -1px;
-  background:
-    radial-gradient(circle at 31% 27%, rgb(255 239 179 / 74%) 0 4%, transparent 16%),
-    radial-gradient(circle at 40% 38%, #ff9a4b 0, #e63f1f 55%, #4b0905 100%);
-  box-shadow: inset -0.65rem -0.2rem 0.9rem rgb(39 2 1 / 72%);
-  opacity: clamp(0, calc((var(--moon-heat) - 0.58) * 1.9), 0.8);
-}
-
+/* The one part still worth doing in CSS: a soft bloom around a Moon heated by
+   the expanding Sun. It is a diffuse glow rather than a lit surface, it has to
+   spill well beyond the Moon's own disc, and it sits behind the canvas. */
 .moon::after {
+  position: absolute;
   z-index: -1;
-  inset: -22%;
+  inset: -30%;
+  border-radius: 50%;
   background: radial-gradient(
     circle,
-    color-mix(in srgb, var(--era-glow) 62%, transparent) 0 32%,
+    color-mix(in srgb, var(--era-glow) 55%, transparent) 0 30%,
     transparent 70%
   );
-  filter: blur(0.48rem);
+  content: "";
+  filter: blur(0.6rem);
   opacity: clamp(0, calc((var(--moon-heat) - 0.58) * 2.4), 1);
+  pointer-events: none;
 }
 
 .earth-fallback {
