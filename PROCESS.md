@@ -41,16 +41,17 @@ across every change that followed, and new coverage since has arrived only when
 I asked for it.
 [`8271304`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/8271304)
 
-### Rejected an optimisation my own metric endorsed
+### Wired performance into the harness, not the prompt
 
-I had reported the globe at 8.3 ms a frame. It was a requestAnimationFrame
-delta clamped to vsync: it would have read 8.3 ms whether the shader cost one
-millisecond or eight. It could not fail, so it was not evidence; what
-contradicted it was a laptop's fans, not a check. The obvious repair was to
-tune the shader. Instead I built a harness that scales the drawing buffer until
-the GPU misses refresh, so the figure can fail out loud. It then caught me:
-trimming noise octaves moved its headline duty cycle from 88% to 62% while the
-measured slope stayed flat. The gain was fit artefact; I reverted it.
+Scrolling was smooth and every check green, but my GPU sat at 99% and the fans
+were loud. The agent's evidence was 8.3 ms a frame — a requestAnimationFrame
+delta clamped to vsync, which would read 8.3 ms whether the shader cost one
+millisecond or eight. Its first fix, a 60 fps cap, only helped the machine it
+ran on. The obvious move was more prompting. Instead I had it build the missing
+instrument: a suite that calibrates refresh, saturates the GPU until frames
+miss, and reports per-pixel cost, with CLAUDE.md barring unsaturated cadence as
+evidence. It immediately found the globe shading 121 frames a second off-screen
+and under reduced motion.
 [PR #20](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/pull/20)
 [`0e2662d`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/0e2662d)
 [PR #22](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/pull/22)
