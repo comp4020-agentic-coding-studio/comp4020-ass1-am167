@@ -41,18 +41,19 @@ across every change that followed, and new coverage since has arrived only when
 I asked for it.
 [`8271304`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/8271304)
 
-### What the finished page caught that a test could
+### Rejected an optimisation my own metric endorsed
 
-Using the finished page exposed something the timeline tests had missed: at +10,
-+50, +500 and +600 million years, today's recognisable coastlines and city lights
-reappeared. Those eras had borrowed the present's visual as a convenient colour
-preset, but the renderer also read `present` as an instruction to load the
-photographic maps. The obvious fix was to correct the four entries. Instead I
-split the overloaded state — a temperate procedural mode for future Earths, the
-photographic mode reserved for the actual present — and wrote a regression test
-enforcing that boundary across all 62 eras, so the same inheritance mistake
-cannot recur in a new one.
-[`0408dd6`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/0408dd6)
+I had reported the globe at 8.3 ms a frame. It was a requestAnimationFrame
+delta clamped to vsync: it would have read 8.3 ms whether the shader cost one
+millisecond or eight. It could not fail, so it was not evidence; what
+contradicted it was a laptop's fans, not a check. The obvious repair was to
+tune the shader. Instead I built a harness that scales the drawing buffer until
+the GPU misses refresh, so the figure can fail out loud. It then caught me:
+trimming noise octaves moved its headline duty cycle from 88% to 62% while the
+measured slope stayed flat. The gain was fit artefact; I reverted it.
+[PR #20](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/pull/20)
+[`0e2662d`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/0e2662d)
+[PR #22](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/pull/22)
 
 ### What the finished page caught that no test could
 
