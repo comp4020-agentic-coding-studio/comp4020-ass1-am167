@@ -74,6 +74,20 @@ export function parsePerformanceProfilerConfig(
   };
 }
 
+/**
+ * True when the saturation probe is forcing a drawing-buffer size rather than
+ * just observing. The probe pins reduced motion so every frame costs the same,
+ * and the site otherwise treats reduced motion as a reason to stop repainting,
+ * so the render loop has to keep running for the measurement to exist at all.
+ * Plain observation runs do not set `drawingPixels` and do not get the
+ * override, so what they measure is the shipped scheduling behaviour.
+ */
+export function forcesContinuousRendering(
+  config: PerformanceProfilerConfig | undefined,
+): boolean {
+  return config?.drawingPixels !== undefined;
+}
+
 function rendererDescription(context: WebGLRenderingContext): {
   version: string;
   vendor: string;

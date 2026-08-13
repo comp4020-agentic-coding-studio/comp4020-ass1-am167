@@ -41,18 +41,20 @@ across every change that followed, and new coverage since has arrived only when
 I asked for it.
 [`8271304`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/8271304)
 
-### What the finished page caught that a test could
+### Wired performance into the harness, not the prompt
 
-Using the finished page exposed something the timeline tests had missed: at +10,
-+50, +500 and +600 million years, today's recognisable coastlines and city lights
-reappeared. Those eras had borrowed the present's visual as a convenient colour
-preset, but the renderer also read `present` as an instruction to load the
-photographic maps. The obvious fix was to correct the four entries. Instead I
-split the overloaded state — a temperate procedural mode for future Earths, the
-photographic mode reserved for the actual present — and wrote a regression test
-enforcing that boundary across all 62 eras, so the same inheritance mistake
-cannot recur in a new one.
-[`0408dd6`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/0408dd6)
+Scrolling was smooth and every check green, but my GPU sat at 99% and the fans
+were loud. The agent's evidence was 8.3 ms a frame — a requestAnimationFrame
+delta clamped to vsync, which would read 8.3 ms whether the shader cost one
+millisecond or eight. Its first fix, a 60 fps cap, only helped the machine it
+ran on. The obvious move was more prompting. Instead I had it build the missing
+instrument: a suite that calibrates refresh, saturates the GPU until frames
+miss, and reports per-pixel cost, with CLAUDE.md barring unsaturated cadence as
+evidence. It immediately found the globe shading 121 frames a second off-screen
+and under reduced motion.
+[PR #20](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/pull/20)
+[`0e2662d`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/0e2662d)
+[PR #22](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/pull/22)
 
 ### What the finished page caught that no test could
 
