@@ -2,66 +2,35 @@
 
 ## What I built
 
-Earth Through Time is intended to be an interactive journery though the history and the future of the Earth. As users scroll, the globe changes across 62 meaningful moments, from the planet's formation to its distant future as a dead rock. All moments are grounded in real scientific research.
+I built Earth Through Time as an interactive journey through Earth's past and future. As users scroll, the globe evolves through 62 significant moments, from the planet's formation to its distant future as a lifeless rock. I grounded each moment in real scientific research so the experience feels immersive and exploratory while still reflecting our current understanding of Earth's history and future.
 
 ## The moments that mattered
 
 ### Abandoned scroll resistance after using it
 
-PRs #9, #10 and #11 tried to make each era harder to skip: first by accumulating
-wheel input, then by adding cooldown and smoothing on top. The obvious next step
-was a fourth attempt at tuning. Instead I reverted both merged PRs and closed the
-third, throwing away work that had already been reviewed and shipped to main.
-
-What made that call possible was that the tests never disagreed with me. The
-threshold logic and DOM state were provably correct and `pnpm check` stayed green
-through all three attempts; what failed was using it — continuous scrolling
-registered as having stopped, the copy jumped before settling, and the smoothing
-I added to fix that made the transition feel less direct rather than more. Each
-attempt moved the numbers and not the experience. The deciding sensor had to be
-the interaction itself, not the suite, and the boundary it set holds: friction
-added to a primary input has to improve things immediately, or browser-native
-behaviour is the better baseline.
+Across PRs #9, #10, and #11, I noticed users could accidentally scroll past events and get stuck half-transitioned. I kept trying to fix this by making each era harder to skip: first accumulating scroll input, then adding cooldown and smoothing on top. On my third attempt, instead of another round of tuning, I reverted both merged PRs and closed the third, knowingly throwing away work I'd already reviewed and merged into main.
+What drove that decision was realising the tests were never going to catch what felt wrong. The logic and DOM state were correct, and `pnpm check` stayed green throughout. But using it myself, it still felt off. Continuous scrolling wasn't registering, it felt jittery, and the smoothing made transitions between eras feel less direct.
+I was just tuning numbers, not improving the experience. The interaction itself had to be the deciding signal, not the test suite. That gave me a rule for future work: if adding friction to a primary input doesn't improve the experience immediately, revert to native behaviour rather than keep asking for fixes.
 [`556b153`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/556b153)
 [`77740fb`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/77740fb)
 [PR #11](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/pull/11)
 
-### Enforced test immutability at the harness level
+### Turned a blanket test ban into a scoped TDD rule
 
-The starter template invited a new test every time something broke, so the spec
-grew with each iteration instead of staying focused on the real constraints.
-Rather than re-prompting the agent to resist that every session, I removed the
-starter test, made `spec/invariants.test.ts` immutable, and hardened `CLAUDE.md`
-to require explicit approval before any test is added. That moved the default
-from "add a test" to "fix the implementation". It held: the spec stayed stable
-across every change that followed, and new coverage since has arrived only when
-I asked for it.
-[`8271304`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/8271304)
+The starter template encouraged a new test whenever something broke, so the spec kept expanding each iteration instead of staying focused on real constraints. My first fix was to remove the starter test, make `spec/invariants.test.ts` immutable, and tell the agent to add tests only when I explicitly asked ([`8271304`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/8271304)).
+That was too restrictive, it blocked useful regression coverage for genuine behavioural changes. I replaced the blanket ban with a scoped TDD rule: for significant, testable changes (a new feature, a state mapping, a risky refactor), start with the smallest failing test; for copy edits, style tweaks, or changes already covered, skip additional coverage ([`04b39c6`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/04b39c6)).
 
 ### Wired performance into the harness, not the prompt
 
-Scrolling was smooth and every check green, but my GPU sat at 99% and the fans
-were loud. The agent's evidence was 8.3 ms a frame — a requestAnimationFrame
-delta clamped to vsync, which would read 8.3 ms whether the shader cost one
-millisecond or eight. Its first fix, a 60 fps cap, only helped the machine it
-ran on. The obvious move was more prompting. Instead I had it build the missing
-instrument: a suite that calibrates refresh, saturates the GPU until frames
-miss, and reports per-pixel cost, with CLAUDE.md barring unsaturated cadence as
-evidence. It immediately found the globe shading 121 frames a second off-screen
-and under reduced motion.
+After a major graphics overhaul, everything looked fine on manual review, smooth scrolling, all checks green. But my GPU was pinned at 100% and the fans were loud. I asked the agent to check; it reported 8.3ms per frame, but a separate agent pointed out that number was meaningless on its own.
+Capping rendering to 60fps only masked the symptom on my machine. Rather than keep prompting for one-off tweaks, I had a separate agent build the performance test suite the harness was missing: it calibrates the display's refresh rate, deliberately saturates the GPU until frames miss, and reports cost per pixel. I updated CLAUDE.md so agents know how to use it. That suite let a new agent find the actual performance gaps and fix them.
 [PR #20](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/pull/20)
 [`0e2662d`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/0e2662d)
 [PR #22](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/pull/22)
 
 ### What the finished page caught that no test could
 
-By the final week the page passed everything: 47 tests, both marked viewports, a
-full review against the published spec. Read aloud, the conclusion was still
-words with no real meaning — "Endings are transformations", "Earth is temporary,
-but not insignificant". No check I could write would catch that. Rather than
-rewrite by feel, I worked out why the good lines were good: the ones that land
-name things — oceans, ice, a pixel, a tenth of a second — and the ones that
-failed named concepts. I rewrote against that rule, then verified the two lines I
-kept rather than trusting them: written history really is 0.095 s of a 24-hour
-Earth, and 0.015 px of this page's scroll.
+By the end, the page passed everything I'd built to evaluate it, tests green, both viewports validated, spec reviewed. But reading the closing paragraph myself, it felt empty: lines like "Endings are transformations" sounded polished without saying much.
+No test would catch that, and rewriting those two lines myself would only have fixed those two lines. So I looked at what made the strongest parts of the page work: they were concrete, oceans, ice, a pixel, a tenth of a second, while the weak ones stayed abstract.
+I gave that rule back to the agent to rewrite the closing section, then checked the two figures it kept rather than taking them on faith: written history really is about 0.095 seconds of a 24-hour Earth, and roughly 0.015 pixels of the page's scroll. A reminder that even after the tests pass, the page still has to be read and felt on its own terms.
 [`8e47c52`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/8e47c52)
