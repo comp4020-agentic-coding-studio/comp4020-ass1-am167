@@ -42,13 +42,13 @@
   `./`, `./about/`), never `import.meta.env.BASE_URL` or a root-absolute
   path --- the deployed site lives under a `/<repo-name>/` path, and a
   relative link resolves correctly there without needing the base baked in.
-- **Deep testing, on request only.** Verifying at both marked viewports is
-  the standing default; going further --- keyboard-only navigation, a resize
-  mid-interaction, throttled/slow-connection behaviour, anything probing
-  whether the site holds up under use it wasn't designed for --- is real
-  work and takes real time, so only do it when I explicitly ask for it. Don't
-  run it proactively "while we're at it," and don't fold it into the routine
-  final-check pass.
+- **Deep testing, on request only.** Verifying at both marked viewports is the
+  standing default; going further --- the deep performance suite below,
+  keyboard-only navigation, a resize mid-interaction, or slow-connection
+  behaviour --- is real work and takes real time, so only do it when I
+  explicitly ask for it. When I do ask about performance, GPU/resource use,
+  low-end hardware, or slow networks, run the full suite rather than treating
+  the fast bundle budgets or a smooth frame rate on this machine as evidence.
 
 ## Tests
 
@@ -71,11 +71,69 @@
   `pnpm exec vitest run src/scripts/timeline.test.ts` for the pure mapping and
   data checks, or `pnpm exec vitest run src/scripts/main.test.ts` for the
   browser-DOM interaction checks. Neither focused command needs a fresh build.
-- Use `pnpm test:performance` when specifically changing assets, bundles, or
-  per-frame scroll work. Use `pnpm check` before committing because it also
-  performs type checking, a production build, linting, and the full test suite.
+- Use `pnpm test:performance:budgets` for the quick deterministic regression
+  gate when changing assets, bundles, or per-frame mapping code. Use
+  `pnpm check` before committing because it also performs type checking, a
+  production build, linting, and the full Vitest suite.
 - `spec/timeline-page.test.ts` and `spec/invariants.test.ts` inspect `dist/`.
   Build first when running either file directly so they test current output.
+
+## Deep performance suite
+
+Run `pnpm test:performance` only when deep performance testing is explicitly
+requested. It builds production output, runs the deterministic budgets, starts
+an isolated static server at the real GitHub Pages base path, and drives the
+installed stable Chrome. It writes timestamped reports plus `latest.md` and
+`latest.json` under the gitignored `performance-results/`; always read the
+Markdown summary and inspect the JSON samples behind any surprising result.
+
+The browser pass cold-loads and sweeps the entire timeline under three named
+profiles:
+
+- the 1920×1080 marking desktop at native speed;
+- the 390×844 marking phone at DPR 3, 4× CPU slowdown, and Slow 4G;
+- a 1366×768 low-end laptop at 6× CPU slowdown and Slow 4G.
+
+For each profile it records navigation/FCP/LCP/CLS, request and transfer size,
+long tasks and total blocking time, JavaScript heap, frame misses during a full
+timeline sweep, the delayed present-day texture load, browser errors, and
+WebGL renders while the globe is offscreen and while reduced motion is active.
+CPU and network slowdown are Chrome emulation; they are controlled comparison
+profiles, not claims to reproduce one particular phone.
+
+The GPU pass is deliberately separate. A normal `requestAnimationFrame` delta
+is vsync-clamped and cannot show whether a render used 5% or 95% of the GPU
+budget --- PR #20 demonstrated that exact false signal. The suite first
+measures Chrome's refresh interval on a blank page, then temporarily raises the
+globe's drawing-buffer load until frames actually miss vsync and fits only
+the mean delivered cadence of those saturated samples (the mean preserves
+fractional throughput that a vsync-quantised median loses). It reports
+procedural and present-day states separately, the WebGL renderer, fit quality,
+milliseconds per megapixel, and a prediction at the shipped 1.25 Mpx cap.
+Never present unsaturated frame cadence as GPU execution time.
+
+Useful variants:
+
+```sh
+PERF_RUNS=3 PERF_LABEL="M1 MacBook Air" pnpm test:performance
+PERF_HEADED=1 PERF_LABEL="Intel lab laptop" pnpm test:performance
+PERF_URL="https://comp4020-agentic-coding-studio.github.io/comp4020-ass1-am167/" pnpm test:performance:browser
+```
+
+Set `PERF_CHROME_PATH` only if stable Chrome is installed outside its standard
+platform location. `playwright-core` is intentional: the suite tests the same
+installed Chrome family as the marking environment and does not download a
+separate browser binary.
+
+Use three runs when comparing a before/after or two machines; compare like for
+like (same Chrome version, headed/headless mode, refresh rate, profile, and
+shader state). A headed run is the final authority for hardware/GPU or thermal
+claims. If the report flags a software renderer such as SwiftShader, its CPU,
+network, and long-task data remain useful but its GPU slope does not represent
+the installed GPU. Warnings are diagnostic leads because hardware varies;
+browser errors, eager present-only textures, and violation of the drawing-pixel
+cap are hard failures. Do not commit generated reports unless I explicitly ask
+for a captured baseline.
 
 ## Dependencies
 

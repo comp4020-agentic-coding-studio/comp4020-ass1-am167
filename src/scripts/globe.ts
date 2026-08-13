@@ -9,6 +9,10 @@ import {
   PLANET_FRAGMENT_SHADER,
   PLANET_VERTEX_SHADER,
 } from "./planet-shader";
+import {
+  attachPerformanceProfiler,
+  detachPerformanceProfiler,
+} from "./performance-profiler";
 import type { EraVisual, TimelineState } from "./timeline";
 import {
   hasVisibleMoon,
@@ -107,6 +111,7 @@ export function createGlobe(
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.98;
+  const performanceProfiler = attachPerformanceProfiler(renderer, canvas);
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(CAMERA_FOV, 1, 0.1, 100);
@@ -310,6 +315,7 @@ export function createGlobe(
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let animationFrame = 0;
   let lastFrame = performance.now();
+  const drawScene = (): void => renderer.render(scene, camera);
 
   const render = (now: number): void => {
     if (!reducedMotion.matches) {
@@ -319,7 +325,8 @@ export function createGlobe(
       planetMaterial.uniforms.cloudDrift.value += elapsed * 0.0000075;
     }
     lastFrame = now;
-    renderer.render(scene, camera);
+    if (performanceProfiler) performanceProfiler.render(now, drawScene);
+    else drawScene();
     animationFrame = window.requestAnimationFrame(render);
   };
 
@@ -351,8 +358,14 @@ export function createGlobe(
     // changes nothing, and past that it trades a little sharpness for a frame
     // rate the machine can actually hold.
     const budgetRatio = Math.sqrt(MAXIMUM_DRAWING_PIXELS / (width * height));
+    const defaultRatio = Math.min(
+      window.devicePixelRatio || 1,
+      2,
+      budgetRatio,
+    );
     renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio || 1, 2, budgetRatio),
+      performanceProfiler?.drawingPixelRatio(width, height, defaultRatio) ??
+        defaultRatio,
     );
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
@@ -382,6 +395,7 @@ export function createGlobe(
   if (moonAnchor) resizeObserver.observe(moonAnchor);
   document.addEventListener("visibilitychange", handleVisibility);
   resize();
+  performanceProfiler?.setActiveEra(TIMELINE[0].id);
   startRendering();
 
   const blendColour = (
@@ -398,6 +412,7 @@ export function createGlobe(
 
   return {
     setState(state) {
+      performanceProfiler?.setActiveEra(state.active.id);
       // Start the photographic maps downloading a little before the present
       // arrives, so they are decoded by the time the blue marble is on screen.
       if (shouldLoadPresentTextures(state.progress)) loadReferenceTextures();
@@ -478,6 +493,7 @@ export function createGlobe(
       }
       blankTexture.dispose();
       renderer.dispose();
+      detachPerformanceProfiler(performanceProfiler);
     },
   };
 }
