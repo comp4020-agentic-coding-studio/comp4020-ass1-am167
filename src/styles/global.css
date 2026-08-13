@@ -556,6 +556,9 @@ a {
   animation: present-breathe 5s ease-in-out infinite;
 }
 
+/* A wide, very soft bloom only. The tight ring that used to live here is now
+   the renderer's job: it is lit from the same direction as the planet, so it
+   fades into the night limb instead of tracing the whole silhouette. */
 .earth-wrap::before {
   position: absolute;
   z-index: 0;
@@ -563,14 +566,13 @@ a {
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    transparent 54%,
-    color-mix(in srgb, var(--era-atmosphere) 22%, transparent) 68%,
-    transparent 74%
+    color-mix(in srgb, var(--era-atmosphere) 13%, transparent) 0 46%,
+    transparent 72%
   );
   content: "";
-  filter: blur(1.35rem);
-  opacity: 0.72;
-  transform: scale(1.08);
+  filter: blur(2.6rem);
+  opacity: 0.5;
+  transform: scale(1.12);
 }
 
 .earth-canvas,
@@ -583,12 +585,12 @@ a {
   height: 100%;
 }
 
+/* No cast shadow: there is nothing under the planet to catch one, and the
+   dark offset copy it produced read as a seam along the lower limb. */
 .earth-canvas {
-  filter:
-    drop-shadow(
-      0 0 1.15rem color-mix(in srgb, var(--era-atmosphere) 25%, transparent)
-    )
-    drop-shadow(0 1.5rem 2.8rem rgb(0 0 0 / 46%));
+  filter: drop-shadow(
+    0 0 1.6rem color-mix(in srgb, var(--era-atmosphere) 18%, transparent)
+  );
 }
 
 .moon {
@@ -599,19 +601,29 @@ a {
   width: 17%;
   aspect-ratio: 1;
   isolation: isolate;
-  border: 1px solid rgb(239 235 221 / 19%);
   border-radius: 50%;
+
+  /* Lit from the upper left, matching the renderer's light direction, so the
+     Moon and the planet agree about where the Sun is. The old version ringed
+     five identical craters around an evenly lit ball, which read as a golf
+     ball; these are soft maria and a few varied basins instead, over a
+     gradient that carries a real terminator into the lower right. */
   background:
-    radial-gradient(circle at 31% 28%, rgb(243 239 222 / 42%) 0 2%, transparent 3%),
-    radial-gradient(circle at 68% 31%, rgb(37 34 31 / 58%) 0 5%, rgb(163 157 145 / 24%) 6% 8%, transparent 9%),
-    radial-gradient(circle at 38% 62%, rgb(49 45 41 / 58%) 0 8%, rgb(188 181 166 / 23%) 9% 11%, transparent 12%),
-    radial-gradient(circle at 71% 70%, rgb(50 46 42 / 48%) 0 3%, rgb(197 190 175 / 19%) 4% 6%, transparent 7%),
-    radial-gradient(circle at 28% 42%, rgb(74 69 63 / 48%) 0 3%, transparent 4%),
-    radial-gradient(circle at 35% 31%, #e6e1d4 0, #aaa397 36%, #736d65 68%, #282522 100%);
-  box-shadow:
-    inset -0.65rem -0.25rem 0.9rem rgb(0 0 0 / 64%),
-    inset 0.16rem 0.1rem 0.25rem rgb(255 255 240 / 16%),
-    0 0.65rem 1.2rem rgb(0 0 0 / 45%);
+    radial-gradient(ellipse 30% 24% at 52% 40%, rgb(46 43 39 / 30%) 0 45%, transparent 100%),
+    radial-gradient(ellipse 18% 24% at 33% 62%, rgb(52 48 43 / 24%) 0 45%, transparent 100%),
+    radial-gradient(circle at 41% 30%, rgb(24 22 20 / 32%) 0 2.2%, rgb(226 220 205 / 20%) 3.2% 4.4%, transparent 6%),
+    radial-gradient(circle at 24% 45%, rgb(28 26 23 / 26%) 0 1.6%, transparent 3.2%),
+    radial-gradient(circle at 49% 18%, rgb(30 28 25 / 22%) 0 1.2%, transparent 2.6%),
+    radial-gradient(
+      circle at 27% 22%,
+      #f1ebdc 0%,
+      #cec6b4 20%,
+      #9a9283 40%,
+      #5c554c 58%,
+      #29251f 74%,
+      #0a0908 88%
+    );
+  box-shadow: inset 0.08rem 0.06rem 0.26rem rgb(255 253 240 / 14%);
   opacity: var(--moon-opacity);
   transform: translate3d(0, calc((1 - var(--moon-opacity)) * 0.9rem), 0)
     scale(calc(0.72 + var(--moon-opacity) * 0.28));

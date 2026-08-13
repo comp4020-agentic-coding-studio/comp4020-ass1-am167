@@ -1,17 +1,22 @@
-export type PlanetMode =
-  | "molten"
-  | "archean"
-  | "oxygen"
-  | "snowball"
-  | "paleozoic"
-  | "mesozoic"
-  | "impact"
-  | "ice-age"
-  | "temperate"
-  | "present"
-  | "dry"
-  | "red-giant"
-  | "remnant";
+// Listed rather than declared as a bare union so the renderer can prove it
+// handles every mode at run time, not only at compile time.
+export const PLANET_MODES = [
+  "molten",
+  "archean",
+  "oxygen",
+  "snowball",
+  "paleozoic",
+  "mesozoic",
+  "impact",
+  "ice-age",
+  "temperate",
+  "present",
+  "dry",
+  "red-giant",
+  "remnant",
+] as const;
+
+export type PlanetMode = (typeof PLANET_MODES)[number];
 
 export interface EraVisual {
   mode: PlanetMode;
