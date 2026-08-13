@@ -4,11 +4,18 @@ import { mixPlanetShading, planetShadingFor } from "./planet-shading";
 import {
   HALO_FRAGMENT_SHADER,
   HALO_VERTEX_SHADER,
+  MOON_FRAGMENT_SHADER,
+  MOON_VERTEX_SHADER,
   PLANET_FRAGMENT_SHADER,
   PLANET_VERTEX_SHADER,
 } from "./planet-shader";
 import type { EraVisual, TimelineState } from "./timeline";
-import { shouldLoadPresentTextures, TIMELINE } from "./timeline";
+import {
+  hasVisibleMoon,
+  moonHeatFor,
+  shouldLoadPresentTextures,
+  TIMELINE,
+} from "./timeline";
 
 export interface GlobeController {
   setState: (state: TimelineState) => void;
@@ -20,6 +27,25 @@ export interface GlobeController {
 // you see is night. Lighting the globe almost straight down the camera axis
 // is what made the old version read as a flat painted circle.
 const LIGHT_DIRECTION = new THREE.Vector3(-0.62, 0.27, 0.55).normalize();
+
+// Roughly a 1280x1280 drawing buffer. Measured at about 4.3ms of GPU per
+// megapixel for this shader, so this is the ceiling that keeps one frame of
+// planet inside a 60Hz budget with room for the rest of the page.
+const MAXIMUM_DRAWING_PIXELS = 1_250_000;
+
+const CAMERA_FOV = 31;
+const ORIGINAL_CAMERA_DISTANCE = 4.55;
+
+// The canvas now reaches past .earth-wrap so it can contain the Moon, which
+// sits outside the wrap's right edge. That would enlarge the planet along with
+// it, so the camera pulls back to hold the globe at exactly the screen size it
+// had when the canvas and the wrap were the same box. This is that size, as a
+// fraction of the wrap's half-height — derived rather than typed in, so it
+// stays correct if the field of view is ever retuned.
+const GLOBE_RADIUS_IN_WRAP =
+  1 /
+  Math.sqrt(ORIGINAL_CAMERA_DISTANCE * ORIGINAL_CAMERA_DISTANCE - 1) /
+  Math.tan((CAMERA_FOV * Math.PI) / 360);
 
 const EARTH_DAY_URL = new URL("../assets/earth-day.jpg", import.meta.url).href;
 const EARTH_SPECULAR_URL = new URL(
@@ -61,6 +87,7 @@ function createFallbackController(fallback: HTMLElement): GlobeController {
 export function createGlobe(
   canvas: HTMLCanvasElement,
   fallback: HTMLElement,
+  moonAnchor?: HTMLElement,
 ): GlobeController {
   let renderer: THREE.WebGLRenderer;
   try {
@@ -77,19 +104,19 @@ export function createGlobe(
 
   fallback.hidden = true;
   renderer.setClearColor(0x000000, 0);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.98;
 
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(31, 1, 0.1, 100);
-  camera.position.z = 4.55;
+  const camera = new THREE.PerspectiveCamera(CAMERA_FOV, 1, 0.1, 100);
+  camera.position.z = ORIGINAL_CAMERA_DISTANCE;
 
   // Detail comes from the fragment shader now, so the mesh only has to hold a
   // clean silhouette.
   const geometry = new THREE.SphereGeometry(1, 128, 96);
   const haloGeometry = new THREE.SphereGeometry(1, 48, 32);
+  const moonGeometry = new THREE.SphereGeometry(1, 48, 32);
 
   const colours = new Map<string, THREE.Color>();
   const colourFor = (value: string): THREE.Color => {
@@ -204,16 +231,72 @@ export function createGlobe(
     },
   });
 
+  const moonMaterial = new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: true,
+    toneMapped: true,
+    vertexShader: MOON_VERTEX_SHADER,
+    fragmentShader: MOON_FRAGMENT_SHADER,
+    uniforms: {
+      lightDirection: { value: LIGHT_DIRECTION },
+      moonOpacity: { value: 0 },
+      moonHeat: { value: moonHeatFor(TIMELINE[0]) },
+    },
+  });
+
   const planetRoot = new THREE.Group();
   planetRoot.rotation.z = -0.2;
   const planet = new THREE.Mesh(geometry, planetMaterial);
   planet.rotation.y = -0.72;
   planet.renderOrder = 0;
   const halo = new THREE.Mesh(haloGeometry, haloMaterial);
-  halo.scale.setScalar(1.6);
+  // Only has to be wide enough to contain the glow, which ends just past
+  // 1.13 planet radii; every unit past that is shaded fragments thrown away.
+  halo.scale.setScalar(1.2);
   halo.renderOrder = 1;
   planetRoot.add(planet, halo);
   scene.add(planetRoot);
+
+  // Outside planetRoot: the Moon keeps its own orientation rather than being
+  // dragged around by the planet's spin and axial tilt.
+  const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+  moon.rotation.y = 0.6;
+  moon.rotation.z = 0.12;
+  moon.renderOrder = 2;
+  moon.visible = false;
+  scene.add(moon);
+
+  // The Moon's place in the composition stays in CSS, on a hidden element that
+  // still takes part in layout. Measuring that element and projecting it into
+  // the scene means the three media queries that move and resize the Moon keep
+  // working, and there are no screen-space constants duplicated here to drift
+  // out of step with the stylesheet.
+  const placeMoon = (canvasWidth: number, canvasHeight: number): void => {
+    if (!moonAnchor) return;
+    const canvasBounds = canvas.getBoundingClientRect();
+    const moonBounds = moonAnchor.getBoundingClientRect();
+    if (moonBounds.width < 1 || canvasBounds.width < 1) return;
+
+    const centreX =
+      (moonBounds.left + moonBounds.width / 2 - canvasBounds.left) /
+      canvasBounds.width;
+    const centreY =
+      (moonBounds.top + moonBounds.height / 2 - canvasBounds.top) /
+      canvasBounds.height;
+
+    const halfHeight =
+      camera.position.z * Math.tan((camera.fov * Math.PI) / 360);
+    const halfWidth = halfHeight * (canvasWidth / canvasHeight);
+
+    moon.position.set(
+      (centreX * 2 - 1) * halfWidth,
+      (1 - centreY * 2) * halfHeight,
+      0,
+    );
+    moon.scale.setScalar(
+      (moonBounds.width / canvasBounds.width) * halfWidth,
+    );
+  };
 
   const centreInView = new THREE.Vector3();
   const updatePlanetCentre = (): void => {
@@ -261,14 +344,42 @@ export function createGlobe(
     const bounds = canvas.getBoundingClientRect();
     const width = Math.max(1, bounds.width);
     const height = Math.max(1, bounds.height);
+    // Cost here is per fragment, and the globe is sized as a fraction of the
+    // viewport, so a large display asks for the expensive shader over far more
+    // pixels than a laptop does. Cap the drawing buffer so the worst case is
+    // bounded: at ordinary window sizes this leaves the device ratio alone and
+    // changes nothing, and past that it trades a little sharpness for a frame
+    // rate the machine can actually hold.
+    const budgetRatio = Math.sqrt(MAXIMUM_DRAWING_PIXELS / (width * height));
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio || 1, 2, budgetRatio),
+    );
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
+
+    // Hold the globe at the screen size it had before the canvas was widened
+    // to reach the Moon: pull the camera back by however much the canvas
+    // overhangs .earth-wrap. Solved from the projected radius of a unit sphere
+    // rather than a tuned constant, so it stays right at every breakpoint.
+    const wrap = canvas.parentElement;
+    const wrapHeight = wrap ? wrap.getBoundingClientRect().height : height;
+    if (wrapHeight > 1) {
+      const targetRadius = (GLOBE_RADIUS_IN_WRAP * wrapHeight) / height;
+      const projected = targetRadius * Math.tan((CAMERA_FOV * Math.PI) / 360);
+      camera.position.z = Math.sqrt(1 / (projected * projected) + 1);
+    }
+
     camera.updateProjectionMatrix();
     updatePlanetCentre();
+    placeMoon(width, height);
   };
 
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(canvas);
+  // The Moon's box can change without the canvas changing — a breakpoint that
+  // only moves the Moon, for instance — and then the drawn Moon would sit at
+  // its old place until something else forced a resize.
+  if (moonAnchor) resizeObserver.observe(moonAnchor);
   document.addEventListener("visibilitychange", handleVisibility);
   resize();
   startRendering();
@@ -333,6 +444,21 @@ export function createGlobe(
       );
       haloMaterial.uniforms.atmosphereDensity.value = shading.atmosphere;
       haloMaterial.uniforms.globeOpacity.value = uniforms.globeOpacity.value;
+
+      const moonPresence = blend(
+        hasVisibleMoon(state.from) ? 1 : 0,
+        hasVisibleMoon(state.to) ? 1 : 0,
+        mix,
+      );
+      moonMaterial.uniforms.moonOpacity.value = moonPresence;
+      moonMaterial.uniforms.moonHeat.value = blend(
+        moonHeatFor(state.from),
+        moonHeatFor(state.to),
+        mix,
+      );
+      // Skipped entirely before the Moon-forming impact and after Earth is
+      // gone, rather than drawn at zero alpha.
+      moon.visible = moonPresence > 0.001;
     },
     destroy() {
       stopRendering();
@@ -340,8 +466,10 @@ export function createGlobe(
       document.removeEventListener("visibilitychange", handleVisibility);
       geometry.dispose();
       haloGeometry.dispose();
+      moonGeometry.dispose();
       planetMaterial.dispose();
       haloMaterial.dispose();
+      moonMaterial.dispose();
       if (referenceRequested) {
         dayMap.dispose();
         oceanMap.dispose();

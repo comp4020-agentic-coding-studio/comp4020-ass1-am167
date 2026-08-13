@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  hasVisibleMoon,
   MILESTONE_ERA_IDS,
   moonHeatFor,
   PLANET_MODES,
@@ -278,6 +279,25 @@ describe("planet shading parameters", () => {
           }
         }
       }
+    }
+  });
+
+  // The renderer draws the Moon and the copy layer names it in the globe's
+  // accessible description, so both have to agree about when it is there.
+  // They used to hold separate copies of this rule.
+  it("shows the Moon only between the impact that made it and the end", () => {
+    const visible = TIMELINE.filter(hasVisibleMoon);
+    const hidden = TIMELINE.filter((era) => !hasVisibleMoon(era));
+
+    expect(visible.length).toBeGreaterThan(0);
+    expect(hidden.map((era) => era.id)).toContain("formation");
+    expect(hidden.map((era) => era.id)).toContain("after-earth");
+    // Nothing between the Moon-forming impact and the white dwarf may blink
+    // the Moon out and back again.
+    const firstVisible = TIMELINE.findIndex(hasVisibleMoon);
+    const lastVisible = TIMELINE.length - 1 - [...TIMELINE].reverse().findIndex(hasVisibleMoon);
+    for (let index = firstVisible; index <= lastVisible; index += 1) {
+      expect(hasVisibleMoon(TIMELINE[index]), TIMELINE[index].id).toBe(true);
     }
   });
 
