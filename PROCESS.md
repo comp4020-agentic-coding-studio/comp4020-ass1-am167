@@ -41,7 +41,7 @@ across every change that followed, and new coverage since has arrived only when
 I asked for it.
 [`8271304`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/8271304)
 
-### Separated present-like climate from the present-day image
+### What the finished page caught that a test could
 
 Using the finished page exposed something the timeline tests had missed: at +10,
 +50, +500 and +600 million years, today's recognisable coastlines and city lights
@@ -54,7 +54,7 @@ enforcing that boundary across all 62 eras, so the same inheritance mistake
 cannot recur in a new one.
 [`0408dd6`](https://github.com/comp4020-agentic-coding-studio/comp4020-ass1-am167/commit/0408dd6)
 
-### Read the finished page instead of the checks
+### What the finished page caught that no test could
 
 By the final week the page passed everything: 47 tests, both marked viewports, a
 full review against the published spec. Read aloud, the conclusion was still
