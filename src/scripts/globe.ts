@@ -12,7 +12,10 @@ import {
 import {
   attachPerformanceProfiler,
   detachPerformanceProfiler,
+  forcesContinuousRendering,
 } from "./performance-profiler";
+import type { RenderMode } from "./render-scheduling";
+import { renderModeFor } from "./render-scheduling";
 import type { EraVisual, TimelineState } from "./timeline";
 import {
   hasVisibleMoon,
@@ -314,10 +317,31 @@ export function createGlobe(
 
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let animationFrame = 0;
+  let singleFrame = 0;
   let lastFrame = performance.now();
+  // Assume visible until the observer reports otherwise: a missed callback
+  // should cost a few wasted frames, not leave the globe permanently blank.
+  let onscreen = true;
+  // Starts matching reality — nothing is scheduled yet — so the first
+  // applyRenderMode call is a real transition and starts the right loop.
+  let renderMode: RenderMode = "paused";
   const drawScene = (): void => renderer.render(scene, camera);
 
+  const paint = (now: number): void => {
+    if (performanceProfiler) performanceProfiler.render(now, drawScene);
+    else drawScene();
+  };
+
   const render = (now: number): void => {
+    // The loop re-checks its own licence to run rather than trusting an event
+    // to arrive. A reduced-motion `change` listener was observed not firing
+    // here while an identical listener elsewhere on the page did, and a globe
+    // that keeps shading every frame because one notification went missing is
+    // the expensive failure. Four property reads a frame buys independence
+    // from that; waking a paused globe still comes from the observers.
+    applyRenderMode();
+    if (renderMode !== "animate") return;
+
     if (!reducedMotion.matches) {
       const elapsed = Math.min(now - lastFrame, 48);
       planet.rotation.y += elapsed * 0.00003;
@@ -325,8 +349,7 @@ export function createGlobe(
       planetMaterial.uniforms.cloudDrift.value += elapsed * 0.0000075;
     }
     lastFrame = now;
-    if (performanceProfiler) performanceProfiler.render(now, drawScene);
-    else drawScene();
+    paint(now);
     animationFrame = window.requestAnimationFrame(render);
   };
 
@@ -342,10 +365,41 @@ export function createGlobe(
     animationFrame = 0;
   };
 
-  const handleVisibility = (): void => {
-    if (document.hidden) stopRendering();
-    else startRendering();
+  /**
+   * Repaint once, for the states that hold a still frame instead of looping.
+   * A no-op while animating, because the loop is already about to draw.
+   */
+  const requestDraw = (): void => {
+    if (renderMode !== "on-demand" || singleFrame !== 0) return;
+    singleFrame = window.requestAnimationFrame((now) => {
+      singleFrame = 0;
+      lastFrame = now;
+      paint(now);
+    });
   };
+
+  const applyRenderMode = (): void => {
+    const next = renderModeFor({
+      documentHidden: document.hidden,
+      onscreen,
+      reducedMotion: reducedMotion.matches,
+      measurementOverride: forcesContinuousRendering(
+        performanceProfiler?.config,
+      ),
+    });
+    if (next === renderMode) return;
+    renderMode = next;
+    if (next === "animate") {
+      startRendering();
+      return;
+    }
+    stopRendering();
+    // Coming back on screen with the era changed while paused, the held frame
+    // is stale, so draw the current state once before settling.
+    if (next === "on-demand") requestDraw();
+  };
+
+  const handleVisibility = (): void => applyRenderMode();
 
   const resize = (): void => {
     const bounds = canvas.getBoundingClientRect();
@@ -385,6 +439,8 @@ export function createGlobe(
     camera.updateProjectionMatrix();
     updatePlanetCentre();
     placeMoon(width, height);
+    // A held frame is the wrong shape once the canvas has resized under it.
+    requestDraw();
   };
 
   const resizeObserver = new ResizeObserver(resize);
@@ -394,9 +450,24 @@ export function createGlobe(
   // its old place until something else forced a resize.
   if (moonAnchor) resizeObserver.observe(moonAnchor);
   document.addEventListener("visibilitychange", handleVisibility);
+
+  // The reader spends the whole hero, and everything after the timeline, with
+  // the globe off screen. Shading those frames costs exactly as much as the
+  // visible ones and shows nobody anything.
+  const visibilityObserver = new IntersectionObserver((entries) => {
+    const latest = entries.at(-1);
+    if (!latest) return;
+    onscreen = latest.isIntersecting;
+    applyRenderMode();
+  });
+  visibilityObserver.observe(canvas);
+
+  const handleMotionPreference = (): void => applyRenderMode();
+  reducedMotion.addEventListener("change", handleMotionPreference);
+
   resize();
   performanceProfiler?.setActiveEra(TIMELINE[0].id);
-  startRendering();
+  applyRenderMode();
 
   const blendColour = (
     uniform: THREE.Color,
@@ -474,10 +545,17 @@ export function createGlobe(
       // Skipped entirely before the Moon-forming impact and after Earth is
       // gone, rather than drawn at zero alpha.
       moon.visible = moonPresence > 0.001;
+
+      // Scrolling is the one thing that still changes the picture when the
+      // globe is held still for reduced motion.
+      requestDraw();
     },
     destroy() {
       stopRendering();
+      if (singleFrame !== 0) window.cancelAnimationFrame(singleFrame);
       resizeObserver.disconnect();
+      visibilityObserver.disconnect();
+      reducedMotion.removeEventListener("change", handleMotionPreference);
       document.removeEventListener("visibilitychange", handleVisibility);
       geometry.dispose();
       haloGeometry.dispose();

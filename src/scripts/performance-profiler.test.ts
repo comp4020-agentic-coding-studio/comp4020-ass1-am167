@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { parsePerformanceProfilerConfig } from "./performance-profiler";
+import {
+  forcesContinuousRendering,
+  parsePerformanceProfilerConfig,
+} from "./performance-profiler";
 
 describe("performance profiler configuration", () => {
   it("stays absent from the normal site unless the browser runner enables it", () => {
@@ -33,5 +36,27 @@ describe("performance profiler configuration", () => {
       drawingPixels: undefined,
       maximumSamples: 600,
     });
+  });
+});
+
+describe("saturation probe render override", () => {
+  it("keeps the loop running only when the probe forces a drawing buffer", () => {
+    expect(
+      forcesContinuousRendering({
+        drawingPixels: 5_000_000,
+        maximumSamples: 240,
+      }),
+    ).toBe(true);
+  });
+
+  it("leaves observation runs measuring the shipped scheduling behaviour", () => {
+    // A profile run only watches; it must see the same pausing a reader gets.
+    expect(
+      forcesContinuousRendering({
+        drawingPixels: undefined,
+        maximumSamples: 240,
+      }),
+    ).toBe(false);
+    expect(forcesContinuousRendering(undefined)).toBe(false);
   });
 });
