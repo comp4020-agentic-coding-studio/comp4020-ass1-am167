@@ -2,7 +2,7 @@
 
 ## What I built
 
-I built Earth Through Time as an interactive journey through Earth's past and future. As users scroll, the globe evolves through 62 significant moments, from the planet's formation to its distant future as a lifeless rock. I grounded each moment in real scientific research so the experience feels immersive and exploratory while still reflecting our current understanding of Earth's history and future.
+Earth Through Time is an interactive scroll-driven journey through Earth's past and future. As users scroll, the globe evolves through 62 real, scientifically grounded moments, from the planet's formation to its distant future as a lifeless rock.
 
 ## The moments that mattered
 
