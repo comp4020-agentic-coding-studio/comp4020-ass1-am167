@@ -1,0 +1,9 @@
+# Assignment 1 reflection
+
+## What was the breakthrough that moved the work forward?
+
+The breakthrough was realising that passing tests is not the same as validadting an interaction. The clearest example of this was my scroll resistance work across PRs 9, 10, and 11. I was trying to stop users from scrolling past events or getting stuck mid transitions, but every fix the agent did added more friction. Through this whole process, pnpm check stayed green, by every automated measure, everything was correct. Actually using it showed something totally different: Continuous scrolling stopped feeling natural, transitions became jittery, and smoothing made moving between eras feel less direct than native browser behaviour. That was when I realized I was tuning against a test suite that couldn’t see the actual problem. Tests could verify correctness, but not whether the interaction felt right. So I reverted the two merged PRs and closed the third. The main takeaway was that for primary input, the interaction itself is the final validation signal. If added friction doesn’t clearly improve the experience, revert to native behaviour instead of layering on more fixes.
+
+## What did this work change about who I want to be as a software developer?
+
+Across the assignment, I became more willing to discard work that was technically correct but wasn’t improving the final experience. I reverted merged PRs, constantly asked for refactors, asked for overhauls, and rebalanced the timeline when it no longer felt right. None of those decisions were based on results from failing tests, they came from actually using and evaluating what I had built. I want to keep this habit as a developer, treating my own judgement of the finished product as part of the work, and being willing to throw away reviewed, working code when it no longer serves the experience.
